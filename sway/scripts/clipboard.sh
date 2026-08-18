@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# CYBER NOIR // CLIPBOARD HISTORY PICKER
+# CYBER NOIR // CLIPBOARD HISTORY PICKER  (wofi -- FALLBACK)
 # ==============================================================================
-# Replaces the inline `cliphist list | wofi | cliphist decode | wl-copy` pipeline
-# that used to be duplicated across bindings.conf and the Waybar module.
+# Superseded by clipboard-gui.py, which every binding now points at. This is
+# kept, not dead weight: the GTK app depends on python-gobject/gtk4/libadwaita,
+# and on a rolling release those can break on an update. When they do, pointing
+# $clipmenu back at this file restores a working picker with no dependencies
+# beyond wofi.
+#
+# It cannot do what the GTK version does -- wofi is a dmenu, so there is no
+# header bar and no per-row delete button; its actions are list rows instead.
+#
+# Originally replaced the inline `cliphist list | wofi | cliphist decode |
+# wl-copy` pipeline that was duplicated across bindings.conf and the Waybar
+# module.
 #
 # Three things that pipeline could not do:
 #

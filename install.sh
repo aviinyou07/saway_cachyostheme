@@ -224,6 +224,10 @@ CORE_PKGS=(
     # the paste shortcut after picking an entry. Without it the picker still
     # copies, it just cannot paste -- the script degrades rather than failing.
     "wtype"
+    # The clipboard manager (sway/scripts/clipboard-gui.py) is a GTK4 app.
+    # These are usually pulled in by something else on a desktop system, which
+    # is exactly how a dependency goes unnoticed until a fresh install.
+    "gtk4" "libadwaita" "python-gobject"
     # Fingerprint authentication for the lock screen and sudo. The PAM stack in
     # system/pam.d/swaylock is only deployed when pam_fprintd.so exists, so
     # without this package the lock screen quietly stays password-only.

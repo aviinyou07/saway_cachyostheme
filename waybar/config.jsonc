@@ -297,8 +297,8 @@
         "format": "󰅌",
         "tooltip": true,
         "tooltip-format": "Clipboard History\nLeft click: picker (Super+Shift+V)\nRight click: clear history",
-        "on-click": "~/.config/sway/scripts/clipboard.sh",
-        "on-click-right": "~/.config/sway/scripts/clipboard.sh clear"
+        "on-click": "~/.config/sway/scripts/clipboard-gui.py",
+        "on-click-right": "~/.config/sway/scripts/clipboard-gui.py"
     },
 
     "battery": {
