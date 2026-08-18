@@ -170,6 +170,19 @@
     "mpris": {
         "format": "{player_icon} {dynamic}",
         "format-paused": "{status_icon} <i>{dynamic}</i>",
+
+        // Empty on purpose. Without this, a STOPPED player still matched the
+        // generic "format" above, and with no title to substitute it rendered
+        // as blank text -- but the widget stayed visible, so the shared pill
+        // styling (background, border, 2px 6px padding) painted an empty
+        // rounded box that highlighted on hover and did nothing when clicked.
+        //
+        // It shows up because a browser keeps its MPRIS interface registered
+        // long after playback ends: Edge was still exporting
+        // org.mpris.MediaPlayer2.edge.instance21810 with status=Stopped and an
+        // empty title. waybar hides a module whose text is empty, so an empty
+        // format string is what actually removes it from the bar.
+        "format-stopped": "",
         "player-icons": {
             "default": "󰎆",
             "spotify": "",

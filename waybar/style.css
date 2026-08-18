@@ -189,7 +189,6 @@ window#waybar.hidden { opacity: 0.2; }
 #custom-updates,
 #custom-weather,
 #custom-pomodoro,
-#mpris,
 #custom-cliphist,
 #battery,
 #backlight,
@@ -216,7 +215,6 @@ window#waybar.hidden { opacity: 0.2; }
 #custom-updates:hover,
 #custom-weather:hover,
 #custom-pomodoro:hover,
-#mpris:hover,
 #custom-cliphist:hover,
 #battery:hover,
 #backlight:hover,
@@ -395,7 +393,44 @@ tooltip label {
 #custom-pomodoro.finished { color: #38BDF8; border-color: rgba(56, 189, 248, 0.3); animation: blink_heat 1s infinite; }
 #custom-pomodoro.stopped-break { color: #2DD4BF; }
 
-#mpris.paused { color: #64748B; }
+/* mpris is styled ONLY in the states worth showing.
+ *
+ * It used to be listed with the shared pill selectors, which meant the
+ * background, border and padding were painted whenever the module existed --
+ * including when nothing was playing. The result was a small empty rounded box
+ * between the clock and the window title that highlighted on hover and did
+ * nothing when clicked.
+ *
+ * Emptying the text was not enough (`format-stopped: ""`) because the styling,
+ * not the label, was what you could see; and a `.stopped` selector did not
+ * match, so the state class cannot be relied on either. Attaching the pill to
+ * .playing/.paused instead means the default state is genuinely unstyled, and
+ * an unstyled empty label occupies nothing.
+ *
+ * This matters more than it sounds: browsers keep their MPRIS interface
+ * registered long after playback stops -- Edge was still exporting
+ * org.mpris.MediaPlayer2.edge.* with status=Stopped -- so the idle state is the
+ * common one, not the exception. */
+#mpris.playing,
+#mpris.paused {
+    background-color: rgba(17, 24, 39, 0.80);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    margin: 3px 2px;
+    transition: all 0.2s ease;
+}
+
+#mpris.playing:hover,
+#mpris.paused:hover {
+    background-color: rgba(30, 41, 59, 0.90);
+    border-color: rgba(56, 189, 248, 0.30);
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.12);
+}
+
+#mpris.paused  { color: #64748B; }
 #mpris.playing { color: #38BDF8; }
 
 #custom-cliphist { color: #A78BFA; }
