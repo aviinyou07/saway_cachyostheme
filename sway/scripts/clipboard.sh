@@ -148,6 +148,79 @@ menu_small() {
 
 ENTRIES="$(cliphist -preview-width 80 list 2>/dev/null)"
 
+# ------------------------------------------------------------------------------
+# Thumbnails
+# ------------------------------------------------------------------------------
+# Image entries all render as "[[ binary data 2 MiB png 1920x1080 ]]" -- and this
+# store is mostly screenshots, so the list was a wall of identical rows with no
+# way to tell one from another. Decoding each into a small thumbnail turns that
+# back into something you can actually pick from.
+#
+# Bounded on purpose: decode+resize costs ~47ms per image, so converting a full
+# 750-entry history would add half a minute to opening the menu. Only the newest
+# THUMB_LIMIT images are rendered -- the ones actually being reached for -- and
+# results are cached by entry id, so any entry is converted at most once.
+THUMB_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/cyber-noir-clipthumbs"
+THUMB_LIMIT=25
+
+build_menu() {
+    if ! command -v magick >/dev/null 2>&1; then printf '%s\n' "$ENTRIES"; return; fi
+    mkdir -p "$THUMB_DIR" 2>/dev/null || { printf '%s\n' "$ENTRIES"; return; }
+
+    # One transparent 44x44 png, generated once, reused for every text row.
+    local SPACER="$THUMB_DIR/.spacer.png"
+    if [[ ! -s "$SPACER" ]]; then
+        magick -size 44x44 xc:none "$SPACER" 2>/dev/null || SPACER=""
+    fi
+
+    local line id thumb made=0
+    while IFS= read -r line; do
+        if (( made < THUMB_LIMIT )) && [[ "$line" == *"binary data"* ]] \
+           && [[ "$line" =~ (png|jpe?g|gif|webp|bmp) ]]; then
+            id="${line%%$'\t'*}"
+            if [[ "$id" =~ ^[0-9]+$ ]]; then
+                thumb="$THUMB_DIR/$id.png"
+                if [[ ! -s "$thumb" ]]; then
+                    # -thumbnail strips metadata as well as resizing, so nothing
+                    # from the original travels into the cache.
+                    printf '%s' "$line" | cliphist decode 2>/dev/null \
+                      | magick - -thumbnail 44x44 "$thumb" 2>/dev/null || thumb=""
+                fi
+                if [[ -n "$thumb" && -s "$thumb" ]]; then
+                    made=$((made + 1))
+                    printf 'img:%s:text:%s\n' "$thumb" "$line"
+                    continue
+                fi
+            fi
+        fi
+        # Text rows get a transparent spacer of the same size. Without it the
+        # id column jumps left on every non-image row, because only image rows
+        # are indented by their thumbnail -- the list stops reading as columns.
+        if [[ -n "$SPACER" ]]; then
+            printf 'img:%s:text:%s\n' "$SPACER" "$line"
+        else
+            printf '%s\n' "$line"
+        fi
+    done <<< "$ENTRIES"
+}
+
+# Drop thumbnails whose entry is gone, so the cache cannot grow without bound as
+# the history rolls over.
+prune_thumbs() {
+    [[ -d "$THUMB_DIR" ]] || return 0
+    local ids f base
+    ids="$(printf '%s' "$ENTRIES" | cut -f1)"
+    for f in "$THUMB_DIR"/*.png; do
+        [[ -e "$f" ]] || continue
+        base="${f##*/}"
+        [[ "$base" == ".spacer.png" ]] && continue
+        base="${base%.png}"
+        grep -qx -- "$base" <<< "$ids" || rm -f -- "$f"
+    done
+}
+prune_thumbs
+
+
 if [[ -z "$ENTRIES" ]]; then
     printf '%s\n%s\n' "$ACT_SHOT" "󰋼   Clipboard history is empty" \
       | menu_small --prompt "Clipboard" --width 460 --height 250 --lines 2 | grep -q "Screenshot" \
@@ -158,10 +231,15 @@ fi
 # Entries FIRST, actions last. wofi pre-selects row one, so with the actions on
 # top the reflex of "open picker, hit Enter" fired a screenshot instead of
 # pasting the most recent item -- the single most common thing this menu is for.
-CHOSEN="$(printf '%s\n%s\n%s\n%s\n%s\n%s\n' "$ENTRIES" "$SEP" \
+CHOSEN="$(printf '%s\n%s\n%s\n%s\n%s\n%s\n' "$(build_menu)" "$SEP" \
                  "$ACT_SHOT" "$ACT_DEL" "$ACT_RESTORE" "$ACT_CLEAR" \
           | menu --prompt "Clipboard   ·   type  del  shot  clear  restore")"
 [[ -n "$CHOSEN" ]] || exit 0
+
+# wofi echoes the row back verbatim, img: prefix and all, so it comes off before
+# cliphist sees it. Shortest-match: a copied string containing a literal ":text:"
+# must not be truncated.
+CHOSEN="${CHOSEN#img:*:text:}"
 
 case "$CHOSEN" in
     "$SEP") exit 0 ;;
