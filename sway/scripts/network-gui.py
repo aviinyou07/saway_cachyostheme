@@ -12,13 +12,43 @@
 # python-gobject and spews G_IS_OBJECT assertion failures on every run here;
 # nmcli is a stable, parseable interface that does not have that problem.
 # =============================================================================
+import os
+
+# -----------------------------------------------------------------------------
+# Keep this off the discrete GPU
+# -----------------------------------------------------------------------------
+# This machine is hybrid: Intel Alder Lake iGPU plus an NVIDIA RTX 2050 that sits
+# in D3cold whenever it is idle. GTK4 initialises its renderer through the glvnd
+# EGL vendor list, which prefers the NVIDIA ICD -- so opening this window WOKE
+# the discrete GPU, and the wake alone cost ~2.5s. Measured cold: 3.5s to first
+# frame, against ~1.0s once the card was already awake, which is exactly why
+# launching it felt intermittently broken rather than uniformly slow.
+#
+# Pinning the EGL vendor to Mesa keeps everything on the iGPU, which is more than
+# enough for a list of rows and never spins the dGPU up. Set before `import gi`,
+# because the vendor list is read when EGL is first loaded.
+_MESA = "/usr/share/glvnd/egl_vendor.d/50_mesa.json"
+if os.path.exists(_MESA):
+    os.environ.setdefault("__EGL_VENDOR_LIBRARY_FILENAMES", _MESA)
+
+# And render in software. Measured on this machine, Gtk.Window.present() cost
+# 3223ms with the default GPU renderer and 236ms with cairo -- a 13x difference,
+# and the single largest component of "why does this take so long to open".
+# Pinning the EGL vendor to Mesa alone did not fix it; the GPU context setup is
+# slow here regardless of which vendor serves it.
+#
+# Nothing here needs a GPU: these windows are a search box and a list of text
+# rows. Software rendering is not a compromise for this UI, it is the correct
+# tool -- and it removes the whole class of hybrid-graphics startup stalls.
+os.environ.setdefault("GSK_RENDERER", "cairo")
+
 import os, re, shutil, subprocess, sys, threading
 from pathlib import Path
 
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, GLib, Gtk, Pango
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
 
 def nmcli(*args, timeout=25):
@@ -181,11 +211,16 @@ class Window(Adw.ApplicationWindow):
         view.set_content(body)
         self.set_content(view)
 
+        # Hide rather than destroy, so the resident process can show it again
+        # instantly instead of rebuilding the whole widget tree.
+        self.connect("close-request", lambda *_: (self.set_visible(False), True)[1])
+
         k = Gtk.EventControllerKey()
         k.connect("key-pressed", self._on_key)
         self.add_controller(k)
 
         self.reload()
+        self.kick_rescan()
 
     # -- data ---------------------------------------------------------------
     def saved_names(self):
@@ -211,7 +246,16 @@ class Window(Adw.ApplicationWindow):
                                 signal=0, security="", active=True, conn=f[3]))
 
         if wifi_on:
-            _, out, _ = nmcli("-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list")
+            # --rescan no reads NetworkManager's cache and returns in ~25ms;
+            # letting nmcli decide makes it trigger a scan and BLOCK on it for
+            # ~3.7s, which is what made opening this from the bar feel broken.
+            #
+            # The cache alone is not enough though: when it has gone stale this
+            # returns almost nothing (one network, in testing). So the window
+            # paints instantly from cache and kick_rescan() refreshes it a
+            # moment later -- fast to appear, and correct shortly after.
+            _, out, _ = nmcli("-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY",
+                              "device", "wifi", "list", "--rescan", "no")
             seen = {}
             for line in out.splitlines():
                 f = split_t(line)
@@ -249,6 +293,28 @@ class Window(Adw.ApplicationWindow):
         self.status.set_label(
             f"Connected to {active['label']}" if active
             else ("Wi-Fi is off" if not wifi_on else "Not connected"))
+
+    def kick_rescan(self):
+        """Refresh the AP list in the background, without blocking the window.
+
+        Deliberately does NOT disable the list the way the Rescan button does:
+        this fires on every open, and greying out the rows the user is reaching
+        for would be worse than showing a slightly stale list for two seconds."""
+        def work():
+            nmcli("device", "wifi", "rescan", timeout=30)
+            GLib.idle_add(self._quiet_reload)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _quiet_reload(self):
+        # Keep whatever the user has typed and whichever row they are on.
+        row = self.listbox.get_selected_row()
+        keep = row.ap["ssid"] if row else None
+        self.reload()
+        if keep:
+            for r in self.rows:
+                if r.ap["ssid"] == keep:
+                    self.listbox.select_row(r); break
+        return False
 
     def rescan(self):
         self.set_busy(True, "Scanning…")
@@ -309,14 +375,18 @@ class Window(Adw.ApplicationWindow):
     def ask_password(self, ap):
         d = Adw.AlertDialog(heading=f"Connect to {ap['label']}",
                             body=f"{ap['security'] or 'Open'} network")
-        entry = Gtk.PasswordEntry(show_peek_icon=True)
+        # placeholder-text must be set as a PROPERTY. Gtk.PasswordEntry has no
+        # set_placeholder_text() -- unlike Gtk.Entry -- so calling it raised
+        # AttributeError inside the row-activated handler. GTK swallows the
+        # traceback into stderr and carries on, which is why clicking a network
+        # appeared to do nothing at all rather than showing an error.
+        entry = Gtk.PasswordEntry(show_peek_icon=True, placeholder_text="Password")
         entry.set_margin_top(8)
         ssid_entry = None
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         if not ap["ssid"]:
             ssid_entry = Gtk.Entry(placeholder_text="Network name (SSID)")
             box.append(ssid_entry)
-        entry.set_placeholder_text("Password")
         box.append(entry)
         d.set_extra_child(box)
         d.add_response("cancel", "Cancel")
@@ -394,11 +464,46 @@ entry, passwordentry { background-color: #0F172A; color: #F8FAFC; border-radius:
 """
 
 
+
+# -----------------------------------------------------------------------------
+# Resident mode
+# -----------------------------------------------------------------------------
+# A Python GTK4 process needs ~1.45s just to reach its first frame here -- that
+# is the interpreter plus pygobject plus GTK init, measured with an empty
+# window, so no amount of tuning inside this file removes it. Paying it on every
+# click is what made the window feel like it opened "very very late".
+#
+# So the app is started once at login with --daemon: it registers on the bus,
+# builds nothing, and waits. Opening it afterwards is
+#   gapplication activate dev.cybernoir.X
+# which costs ~119ms because it never starts a second interpreter.
+#
+# Closing the window hides it rather than quitting, so the second open is as
+# fast as the first.
 class App(Adw.Application):
     def __init__(self):
         super().__init__(application_id="dev.cybernoir.Networks")
 
+    def do_startup(self):
+        Adw.Application.do_startup(self)
+        # A dedicated "open" action, rather than reusing activation.
+        #
+        # Activation cannot distinguish "start the daemon" from "show the
+        # window": every launch of this script activates the primary instance,
+        # so a plain `sway reload` -- which re-runs the autostart line -- would
+        # have popped both windows open on screen. Separating them means the
+        # daemon start is idempotent and only an explicit `open` shows anything.
+        act = Gio.SimpleAction.new("open", None)
+        act.connect("activate", lambda *_: self.show_window())
+        self.add_action(act)
+
     def do_activate(self):
+        if "--daemon" in sys.argv:
+            self.hold()          # stay resident, show nothing
+            return
+        self.show_window()
+
+    def show_window(self):
         Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         prov = Gtk.CssProvider(); prov.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_display(
@@ -409,8 +514,14 @@ class App(Adw.Application):
         if win is None:
             win = Window(self)
         else:
+            # Clear the filter before reshowing. The window is hidden rather than
+            # destroyed, so whatever was last typed survives -- and reopening to
+            # a list filtered by a forgotten search term looks exactly like the
+            # app failing to find anything.
+            win.search.set_text("")
             win.reload()          # signal levels and state move constantly
         win.present()
+        win.search.grab_focus()
 
 
 if __name__ == "__main__":

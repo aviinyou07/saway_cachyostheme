@@ -278,7 +278,7 @@
         "tooltip-format-wifi": "WiFi: {essid} ({signalStrength}%)\n{ifname} — {ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}",
         "tooltip-format-ethernet": "{ifname} — {ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}",
         "tooltip-format-disconnected": "No network",
-        "on-click": "~/.config/sway/scripts/network-gui.py"
+        "on-click": "~/.config/sway/scripts/open-app.sh dev.cybernoir.Networks ~/.config/sway/scripts/network-gui.py"
     },
 
     "custom/vpn": {
@@ -297,8 +297,8 @@
         "format": "󰅌",
         "tooltip": true,
         "tooltip-format": "Clipboard History\nLeft click: picker (Super+Shift+V)\nRight click: clear history",
-        "on-click": "~/.config/sway/scripts/clipboard-gui.py",
-        "on-click-right": "~/.config/sway/scripts/clipboard-gui.py"
+        "on-click": "~/.config/sway/scripts/open-app.sh dev.cybernoir.Clipboard ~/.config/sway/scripts/clipboard-gui.py",
+        "on-click-right": "~/.config/sway/scripts/open-app.sh dev.cybernoir.Clipboard ~/.config/sway/scripts/clipboard-gui.py"
     },
 
     "battery": {

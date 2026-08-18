@@ -17,6 +17,36 @@
 # right shortcut per application, backup before any destructive action, bounded
 # and cached thumbnails, and focus sampled before this window ever maps.
 # =============================================================================
+import os
+
+# -----------------------------------------------------------------------------
+# Keep this off the discrete GPU
+# -----------------------------------------------------------------------------
+# This machine is hybrid: Intel Alder Lake iGPU plus an NVIDIA RTX 2050 that sits
+# in D3cold whenever it is idle. GTK4 initialises its renderer through the glvnd
+# EGL vendor list, which prefers the NVIDIA ICD -- so opening this window WOKE
+# the discrete GPU, and the wake alone cost ~2.5s. Measured cold: 3.5s to first
+# frame, against ~1.0s once the card was already awake, which is exactly why
+# launching it felt intermittently broken rather than uniformly slow.
+#
+# Pinning the EGL vendor to Mesa keeps everything on the iGPU, which is more than
+# enough for a list of rows and never spins the dGPU up. Set before `import gi`,
+# because the vendor list is read when EGL is first loaded.
+_MESA = "/usr/share/glvnd/egl_vendor.d/50_mesa.json"
+if os.path.exists(_MESA):
+    os.environ.setdefault("__EGL_VENDOR_LIBRARY_FILENAMES", _MESA)
+
+# And render in software. Measured on this machine, Gtk.Window.present() cost
+# 3223ms with the default GPU renderer and 236ms with cairo -- a 13x difference,
+# and the single largest component of "why does this take so long to open".
+# Pinning the EGL vendor to Mesa alone did not fix it; the GPU context setup is
+# slow here regardless of which vendor serves it.
+#
+# Nothing here needs a GPU: these windows are a search box and a list of text
+# rows. Software rendering is not a compromise for this UI, it is the correct
+# tool -- and it removes the whole class of hybrid-graphics startup stalls.
+os.environ.setdefault("GSK_RENDERER", "cairo")
+
 import os, re, shutil, subprocess, sys, threading, time
 from datetime import datetime
 from pathlib import Path
@@ -24,7 +54,7 @@ from pathlib import Path
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, GLib, Gtk, Pango
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
 CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
 DB = CACHE / "cliphist" / "db"
@@ -210,6 +240,10 @@ class Window(Adw.ApplicationWindow):
         view.set_content(body)
         self.set_content(view)
 
+        # Hide rather than destroy, so the resident process can show it again
+        # instantly instead of rebuilding the whole widget tree.
+        self.connect("close-request", lambda *_: (self.set_visible(False), True)[1])
+
         esc = Gtk.EventControllerKey()
         esc.connect("key-pressed", self._on_key)
         self.add_controller(esc)
@@ -391,12 +425,47 @@ entry { background-color: #0F172A; color: #F8FAFC; border-radius: 10px; }
 """
 
 
+
+# -----------------------------------------------------------------------------
+# Resident mode
+# -----------------------------------------------------------------------------
+# A Python GTK4 process needs ~1.45s just to reach its first frame here -- that
+# is the interpreter plus pygobject plus GTK init, measured with an empty
+# window, so no amount of tuning inside this file removes it. Paying it on every
+# click is what made the window feel like it opened "very very late".
+#
+# So the app is started once at login with --daemon: it registers on the bus,
+# builds nothing, and waits. Opening it afterwards is
+#   gapplication activate dev.cybernoir.X
+# which costs ~119ms because it never starts a second interpreter.
+#
+# Closing the window hides it rather than quitting, so the second open is as
+# fast as the first.
 class App(Adw.Application):
     def __init__(self):
         super().__init__(application_id="dev.cybernoir.Clipboard")
         self.target_app = focused_app()
 
+    def do_startup(self):
+        Adw.Application.do_startup(self)
+        # A dedicated "open" action, rather than reusing activation.
+        #
+        # Activation cannot distinguish "start the daemon" from "show the
+        # window": every launch of this script activates the primary instance,
+        # so a plain `sway reload` -- which re-runs the autostart line -- would
+        # have popped both windows open on screen. Separating them means the
+        # daemon start is idempotent and only an explicit `open` shows anything.
+        act = Gio.SimpleAction.new("open", None)
+        act.connect("activate", lambda *_: self.show_window())
+        self.add_action(act)
+
     def do_activate(self):
+        if "--daemon" in sys.argv:
+            self.hold()          # stay resident, show nothing
+            return
+        self.show_window()
+
+    def show_window(self):
         Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         prov = Gtk.CssProvider()
         prov.load_from_data(CSS)
@@ -411,8 +480,14 @@ class App(Adw.Application):
         if win is None:
             win = Window(self, self.target_app)
         else:
+            # Clear the filter before reshowing. The window is hidden rather than
+            # destroyed, so whatever was last typed survives -- and reopening to
+            # a list filtered by a forgotten search term looks exactly like the
+            # app failing to find anything.
+            win.search.set_text("")
             win.reload()          # entries may have arrived since it was opened
         win.present()
+        win.search.grab_focus()
 
 
 if __name__ == "__main__":
