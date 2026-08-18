@@ -1,108 +1,85 @@
 #!/usr/bin/env bash
-# Pomodoro Timer Module for Waybar
-# Maintains state in /tmp/pomodoro_state
+# ==============================================================================
+# CYBER STUDIO WAYBAR // POMODORO TIMER
+# ==============================================================================
+# waybar runs this once a SECOND, forever, whether or not a timer is going -- so
+# every fork in here is paid 86,400 times a day. Two were removed:
+#
+#   * `date +%s` -> $EPOCHSECONDS, a bash 5 builtin, so reading the clock no
+#     longer spawns a process.
+#   * TEXT=$(printf ...) -> printf -v TEXT, so formatting no longer spawns a
+#     subshell.
+#
+# State moved from /tmp/pomodoro_state to XDG_RUNTIME_DIR. The old path was a
+# predictable name in a world-writable directory, which on a multi-user box lets
+# anyone else create or clobber it; the runtime dir is user-only and clears
+# itself at logout. A timer left running across a reboot is not worth keeping.
+# ==============================================================================
+set -uo pipefail
 
-STATE_FILE="/tmp/pomodoro_state"
-WORK_TIME=1500 # 25 minutes in seconds
-BREAK_TIME=300 # 5 minutes in seconds
+STATE_FILE="${XDG_RUNTIME_DIR:-/tmp}/cyber-noir-pomodoro"
+WORK_TIME=1500   # 25 minutes
+BREAK_TIME=300   # 5 minutes
 
-# Initialize state if not exists
-if [[ ! -f "$STATE_FILE" ]]; then
-    echo "STOPPED|WORK|0" > "$STATE_FILE"
-fi
-
+[[ -f "$STATE_FILE" ]] || echo "STOPPED|WORK|0" > "$STATE_FILE"
 IFS='|' read -r STATUS MODE START_TIME < "$STATE_FILE"
 
-# Handle actions (start/pause/reset) passed as arguments
-case "$1" in
+# Guard against a truncated or hand-edited state file: without this a
+# non-numeric START_TIME makes every later $(( )) a fatal arithmetic error.
+[[ "${START_TIME:-}" =~ ^-?[0-9]+$ ]] || { STATUS=STOPPED; MODE=WORK; START_TIME=0; }
+
+case "${1:-}" in
     toggle)
-        if [[ "$STATUS" == "STOPPED" || "$STATUS" == "PAUSED" ]]; then
-            # Start or resume
-            if [[ "$STATUS" == "STOPPED" ]]; then
-                echo "RUNNING|$MODE|$(date +%s)" > "$STATE_FILE"
-            else
-                # Resume from pause: adjust start time by the pause duration
-                # In PAUSED state, START_TIME actually holds the remaining seconds
-                NEW_START=$(($(date +%s) - ($WORK_TIME - $START_TIME)))
-                [[ "$MODE" == "BREAK" ]] && NEW_START=$(($(date +%s) - ($BREAK_TIME - $START_TIME)))
-                echo "RUNNING|$MODE|$NEW_START" > "$STATE_FILE"
-            fi
-        else
-            # Pause
-            CURRENT_TIME=$(date +%s)
-            ELAPSED=$((CURRENT_TIME - START_TIME))
+        if [[ "$STATUS" == "STOPPED" ]]; then
+            echo "RUNNING|$MODE|$EPOCHSECONDS" > "$STATE_FILE"
+        elif [[ "$STATUS" == "PAUSED" ]]; then
+            # While PAUSED, START_TIME holds REMAINING seconds, so resuming
+            # means back-dating the start by however much has already elapsed.
             DURATION=$WORK_TIME
             [[ "$MODE" == "BREAK" ]] && DURATION=$BREAK_TIME
-            REMAINING=$((DURATION - ELAPSED))
-            echo "PAUSED|$MODE|$REMAINING" > "$STATE_FILE"
+            echo "RUNNING|$MODE|$(( EPOCHSECONDS - (DURATION - START_TIME) ))" > "$STATE_FILE"
+        else
+            DURATION=$WORK_TIME
+            [[ "$MODE" == "BREAK" ]] && DURATION=$BREAK_TIME
+            echo "PAUSED|$MODE|$(( DURATION - (EPOCHSECONDS - START_TIME) ))" > "$STATE_FILE"
         fi
-        exit 0
-        ;;
-    reset)
-        echo "STOPPED|WORK|0" > "$STATE_FILE"
-        exit 0
-        ;;
-    break)
-        echo "RUNNING|BREAK|$(date +%s)" > "$STATE_FILE"
-        exit 0
-        ;;
-    work)
-        echo "RUNNING|WORK|$(date +%s)" > "$STATE_FILE"
-        exit 0
-        ;;
+        exit 0 ;;
+    reset) echo "STOPPED|WORK|0"           > "$STATE_FILE"; exit 0 ;;
+    break) echo "RUNNING|BREAK|$EPOCHSECONDS" > "$STATE_FILE"; exit 0 ;;
+    work)  echo "RUNNING|WORK|$EPOCHSECONDS"  > "$STATE_FILE"; exit 0 ;;
 esac
 
-# Calculate display output
 TEXT="󱎫 25:00"
 CLASS="stopped"
 TOOLTIP="Pomodoro: Stopped\nLeft click: Start/Pause\nRight click: Reset\nMiddle click: Toggle Work/Break"
 
 if [[ "$STATUS" == "RUNNING" ]]; then
-    CURRENT_TIME=$(date +%s)
-    ELAPSED=$((CURRENT_TIME - START_TIME))
-    
-    if [[ "$MODE" == "WORK" ]]; then
-        REMAINING=$((WORK_TIME - ELAPSED))
-        if [[ $REMAINING -le 0 ]]; then
-            # Time's up! Send notification and switch to break
+    DURATION=$WORK_TIME
+    [[ "$MODE" == "BREAK" ]] && DURATION=$BREAK_TIME
+    REMAINING=$(( DURATION - (EPOCHSECONDS - START_TIME) ))
+
+    if (( REMAINING <= 0 )); then
+        if [[ "$MODE" == "WORK" ]]; then
             notify-send -u critical -t 10000 "🍅 Pomodoro" "Work session complete! Take a break."
             echo "STOPPED|BREAK|0" > "$STATE_FILE"
-            TEXT="󱎫 00:00"
-            CLASS="finished"
         else
-            M=$((REMAINING / 60))
-            S=$((REMAINING % 60))
-            TEXT=$(printf "󱎫 %02d:%02d" $M $S)
-            CLASS="running-work"
-            TOOLTIP="Work Mode\n$TEXT remaining"
-        fi
-    elif [[ "$MODE" == "BREAK" ]]; then
-        REMAINING=$((BREAK_TIME - ELAPSED))
-        if [[ $REMAINING -le 0 ]]; then
             notify-send -u critical -t 10000 "🍅 Pomodoro" "Break over! Back to work."
             echo "STOPPED|WORK|0" > "$STATE_FILE"
-            TEXT="󱎫 00:00"
-            CLASS="finished"
+        fi
+        TEXT="󱎫 00:00"; CLASS="finished"
+    else
+        printf -v TEXT '󱎫 %02d:%02d' $(( REMAINING / 60 )) $(( REMAINING % 60 ))
+        if [[ "$MODE" == "WORK" ]]; then
+            CLASS="running-work";  TOOLTIP="Work Mode\n$TEXT remaining"
         else
-            M=$((REMAINING / 60))
-            S=$((REMAINING % 60))
-            TEXT=$(printf "󱎫 %02d:%02d" $M $S)
-            CLASS="running-break"
-            TOOLTIP="Break Mode\n$TEXT remaining"
+            CLASS="running-break"; TOOLTIP="Break Mode\n$TEXT remaining"
         fi
     fi
 elif [[ "$STATUS" == "PAUSED" ]]; then
-    M=$((START_TIME / 60))
-    S=$((START_TIME % 60))
-    TEXT=$(printf "󱎫 %02d:%02d" $M $S)
-    CLASS="paused"
-    TOOLTIP="Paused ($MODE Mode)\n$TEXT remaining"
-elif [[ "$STATUS" == "STOPPED" ]]; then
-    if [[ "$MODE" == "BREAK" ]]; then
-        TEXT="󱎫 05:00"
-        CLASS="stopped-break"
-        TOOLTIP="Pomodoro: Break Time (Stopped)"
-    fi
+    printf -v TEXT '󱎫 %02d:%02d' $(( START_TIME / 60 )) $(( START_TIME % 60 ))
+    CLASS="paused"; TOOLTIP="Paused ($MODE Mode)\n$TEXT remaining"
+elif [[ "$STATUS" == "STOPPED" && "$MODE" == "BREAK" ]]; then
+    TEXT="󱎫 05:00"; CLASS="stopped-break"; TOOLTIP="Pomodoro: Break Time (Stopped)"
 fi
 
 printf '{"text": "%s", "tooltip": "%s", "class": "%s"}\n' "$TEXT" "$TOOLTIP" "$CLASS"

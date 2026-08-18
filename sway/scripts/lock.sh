@@ -59,6 +59,13 @@ BLEND=70
 BLUR_SCALE=30
 BLUR_UP=333.334
 
+# --prewarm builds the cached wallpaper base and vignette and exits WITHOUT
+# locking. sway runs it once at session start, so the first real lock of the day
+# costs the same ~0.5s as every later one instead of ~1.8s spent decoding the
+# wallpaper and generating the gradient while the screen sits unlocked.
+PREWARM=0
+[[ "${1:-}" == "--prewarm" ]] && PREWARM=1
+
 SHOTS=()
 IMAGE_ARGS=()
 
@@ -71,9 +78,11 @@ trap cleanup EXIT
 # The idle timeout, the `lock` event, the power menu and Super+Ctrl+L can all
 # fire at once. flock serialises the racers; the pgrep check drops the ones that
 # arrive when the screen is already locked.
-exec 9>"$LOCKFILE"
-flock -n 9 || exit 0
-pgrep -x swaylock >/dev/null 2>&1 && exit 0
+if (( ! PREWARM )); then
+    exec 9>"$LOCKFILE"
+    flock -n 9 || exit 0
+    pgrep -x swaylock >/dev/null 2>&1 && exit 0
+fi
 
 # ------------------------------------------------------------------------------
 # Current wallpaper
@@ -130,7 +139,13 @@ wallpaper_base() {
 }
 
 vignette() {
-    local w="$1" h="$2" out="${CACHE_PREFIX}-vig-${w}x${h}.png"
+    # Two statements, deliberately. bash expands every word of a `local` command
+    # BEFORE performing its assignments, so declaring `out` in the same statement
+    # that assigns `w` expands ${w} from the enclosing scope, not from $1. That
+    # only appeared to work while the sole caller happened to have its own local
+    # `w` in scope; called from anywhere else it dies on `w: unbound variable`.
+    local w="$1" h="$2"
+    local out="${CACHE_PREFIX}-vig-${w}x${h}.png"
     if [[ ! -s "$out" ]]; then
         ( umask 077; : >"$out" ) 2>/dev/null || return 1
         magick -size "${w}x${h}" radial-gradient:'#00000000'-'#00000048' \
@@ -211,6 +226,23 @@ capture() {
         IMAGE_ARGS+=(--image "${o}:${f}")
     done
 }
+
+if (( PREWARM )); then
+    wall="$(current_wallpaper)"
+    [[ -n "$wall" && -r "$wall" ]] || exit 0
+    command -v jq >/dev/null 2>&1 || exit 0
+    while read -r _o _w _h; do
+        [[ -n "${_w:-}" && -n "${_h:-}" ]] || continue
+        wallpaper_base "$wall" "$_w" "$_h" >/dev/null || true
+        vignette "$_w" "$_h" >/dev/null || true
+    done < <(swaymsg -t get_outputs 2>/dev/null | jq -r '
+        .[] | select(.active) |
+        if ((.transform // "normal") | test("^(90|270)"))
+        then "\(.name) \(.current_mode.height) \(.current_mode.width)"
+        else "\(.name) \(.current_mode.width) \(.current_mode.height)" end
+    ' 2>/dev/null)
+    exit 0
+fi
 
 if capture; then
     IMAGE_ARGS+=(--scaling fill)

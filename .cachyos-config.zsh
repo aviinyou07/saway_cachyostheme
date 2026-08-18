@@ -77,7 +77,13 @@ alias please="sudo"
 alias tb="nc termbin.com 9999"
 
 # Cleanup orphaned packages
-alias cleanup="sudo pacman -Rsn $(pacman -Qtdq)"
+# Single-quoted deliberately. With double quotes $(pacman -Qtdq) is substituted
+# when the alias is DEFINED -- i.e. on every shell startup -- which did three
+# things at once: added ~270ms to every new terminal, froze the orphan list at
+# the moment the shell opened so `cleanup` later removed a stale set, and
+# embedded a literal newline between package names, so the alias body became two
+# commands and the second ran as if it were a program name.
+alias cleanup='sudo pacman -Rsn $(pacman -Qtdq)'
 
 # Get the error messages from journalctl
 alias jctl="journalctl -p 3 -xb"

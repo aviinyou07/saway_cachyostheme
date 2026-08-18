@@ -31,23 +31,38 @@ country_name() {
     esac
 }
 
-# Get active VPN connection from NetworkManager
-RAW_NAME=$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null \
-    | awk -F: '($2 ~ /wireguard|vpn|tun|tap|openvpn|ipsec|ppp|tailscale/) && $0 !~ /killswitch|leak/ {print $1; exit}')
+# ------------------------------------------------------------------------------
+# Fast path first: is there a tunnel interface at all?
+# ------------------------------------------------------------------------------
+# This module polls every 5s. It used to open with `nmcli`, which is a D-Bus
+# round-trip to NetworkManager and measured 62ms -- about 18 minutes of CPU per
+# day, nearly all of it spent confirming the usual answer of "no VPN".
+#
+# Globbing /sys/class/net is a directory read in the shell with no process spawn
+# at all, so the common case now costs effectively nothing, and nmcli is only
+# consulted once a tunnel is actually up and its pretty name is needed.
+TUN_IFACE=""
+for _if in /sys/class/net/*; do
+    _n="${_if##*/}"
+    case "$_n" in
+        wg[0-9]*|tun[0-9]*|tap[0-9]*|proton[0-9]*|nordlynx*|mullvad*|tailscale*|warp*)
+            TUN_IFACE="$_n"; break ;;
+    esac
+done
 
-# Fallback: check kernel interfaces
-if [[ -z "${RAW_NAME}" ]]; then
-    RAW_IFACE=$(ip -o link show 2>/dev/null \
-        | awk -F': ' '$2 ~ /proton[0-9]|tun[0-9]|wg[0-9]|tailscale|mullvad|warp|nordlynx/ {print $2; exit}' \
-        | tr -d ' ')
-    [[ -n "${RAW_IFACE}" ]] && RAW_NAME="${RAW_IFACE}"
-fi
-
-# No VPN — emit empty to fully collapse pill
-if [[ -z "${RAW_NAME}" ]]; then
+# No tunnel device -> no VPN. Emit empty to fully collapse the pill.
+if [[ -z "${TUN_IFACE}" ]]; then
     echo '{"text": "", "tooltip": "No VPN active. Status: Direct Gateway.", "class": "disconnected"}'
     exit 0
 fi
+
+# A tunnel exists, so the expensive lookup is now justified: ask NetworkManager
+# for the connection's real name (e.g. "ProtonVPN CH-JP#2") to parse a country
+# from. If NM does not know about it -- a wg-quick or tailscaled tunnel it did
+# not create -- fall back to the interface name.
+RAW_NAME=$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null \
+    | awk -F: '($2 ~ /wireguard|vpn|tun|tap|openvpn|ipsec|ppp|tailscale/) && $0 !~ /killswitch|leak/ {print $1; exit}')
+[[ -n "${RAW_NAME}" ]] || RAW_NAME="${TUN_IFACE}"
 
 # Parse country code from ProtonVPN/Mullvad style names (e.g. "ProtonVPN CH-JP#2" → JP → Japan)
 CODE=$(echo "${RAW_NAME}" | grep -oP '\b[A-Z]{2}\b' | tail -1)

@@ -217,6 +217,9 @@ CORE_PKGS=(
     #   iputils      -> ping, for the waybar latency module.
     # ---------------------------------------------------------------------------
     "imagemagick" "libnotify" "glib2" "iputils"
+    # Laptop CPU/thermal profile management. Active on the author's machine but
+    # never listed, so a clone silently ran without any power profile at all.
+    "power-profiles-daemon"
     # Fingerprint authentication for the lock screen and sudo. The PAM stack in
     # system/pam.d/swaylock is only deployed when pam_fprintd.so exists, so
     # without this package the lock screen quietly stays password-only.
