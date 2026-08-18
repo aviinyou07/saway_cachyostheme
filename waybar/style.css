@@ -317,11 +317,27 @@ window#waybar.hidden { opacity: 0.2; }
     animation: blink_heat 1s infinite;
 }
 
-/* Collapse modules whose format is an empty string, so they leave no ghost
- * capsule behind. Every other optional module already does this; bluetooth was
- * missed, which is why an empty pill floated in the bar whenever BT was off. */
+/* Bluetooth off: dimmed, NOT collapsed.
+ *
+ * This used to zero the box model so an off adapter vanished entirely. That
+ * made "switched off" and "no hardware" look the same, and removed the control
+ * at exactly the moment it is wanted -- there was no way to turn Bluetooth back
+ * on from the bar. The capsule stays, muted to text-3, and the icon carries the
+ * state. Only a genuinely absent controller collapses, via an empty format. */
 #bluetooth.off,
-#bluetooth.disabled,
+#bluetooth.disabled {
+    color: #475569;
+    border-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(17, 24, 39, 0.55);
+}
+#bluetooth.off:hover,
+#bluetooth.disabled:hover {
+    color: #94A3B8;
+    border-color: rgba(96, 165, 250, 0.30);
+}
+
+/* No controller at all -- format is "", so collapse it rather than leave a
+ * ghost capsule for hardware that does not exist. */
 #bluetooth.no-controller {
     font-size: 0;
     padding: 0;
@@ -329,6 +345,18 @@ window#waybar.hidden { opacity: 0.2; }
     min-width: 0;
     border: none;
     background: transparent;
+}
+
+/* Wi-Fi switched off reads as muted rather than alarming; "offline" while it is
+ * on is a fault worth the red. */
+#network.disabled {
+    color: #475569;
+    border-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(17, 24, 39, 0.55);
+}
+#network.disabled:hover {
+    color: #94A3B8;
+    border-color: rgba(56, 189, 248, 0.30);
 }
 
 /* -----------------------------------------------------------------------------

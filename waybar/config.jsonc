@@ -288,9 +288,14 @@
         "format-ethernet": "<span color='#2DD4BF'>󰈀 </span> {ifname}",
         "format-linked": "󰈀 {ifname} (no ip)",
         "format-disconnected": "<span color='#EF4444'>󰖪</span> offline",
+        // Radio off is its own state and reads differently from "offline":
+        // nothing is wrong, the adapter is simply switched off. Dimmed, and the
+        // click below opens the Networks app, whose header has the Wi-Fi switch.
+        "format-disabled": "<span color='#475569'>󰖪</span> wifi off",
         "tooltip-format-wifi": "WiFi: {essid} ({signalStrength}%)\n{ifname} — {ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}",
         "tooltip-format-ethernet": "{ifname} — {ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}",
-        "tooltip-format-disconnected": "No network",
+        "tooltip-format-disconnected": "No network\nClick to open the network manager",
+        "tooltip-format-disabled": "Wi-Fi is off\nClick to open the network manager and switch it on",
         "on-click": "~/.config/sway/scripts/open-app.sh dev.cybernoir.Networks ~/.config/sway/scripts/network-gui.py"
     },
 
@@ -352,14 +357,24 @@
     },
 
     "bluetooth": {
-        "format": "",
-        "format-disabled": "",
-        "format-off": "",
+        // Off states show a DIMMED icon rather than collapsing to nothing.
+        // Vanishing made "off" and "not present" look identical, and left no
+        // way to turn it back on from the bar -- the one moment you actually
+        // want the control.
+        "format": "<span color='#475569'>󰂲</span>",
+        "format-disabled": "<span color='#475569'>󰂲</span>",
+        "format-off": "<span color='#475569'>󰂲</span>",
+        "format-no-controller": "",
         "format-on": "<span color='#60A5FA'>󰂯</span>",
         "format-connected": "<span color='#38BDF8'>󰂱</span> {device_alias}",
         "tooltip": true,
-        "tooltip-format": "Bluetooth: {status}\n{controller_alias}",
-        "on-click": "blueman-manager"
+        "tooltip-format": "Bluetooth: {status}\n{controller_alias}\nClick: turn on / open manager\nRight click: turn off",
+        "tooltip-format-off": "Bluetooth is off\nClick to turn it on",
+        "tooltip-format-disabled": "Bluetooth is disabled\nClick to turn it on",
+        // Not blueman-manager directly: while rfkill has the adapter blocked,
+        // BlueZ refuses to power on and the manager cannot enable it either.
+        "on-click": "~/.config/waybar/scripts/bluetooth_click.sh open",
+        "on-click-right": "~/.config/waybar/scripts/bluetooth_click.sh off"
     },
 
     // -------------------------------------------------------------------------
