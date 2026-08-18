@@ -1,0 +1,19 @@
+[Unit]
+Description=Generate live host telemetry for the Cyber Studio SDDM greeter
+# Ordering matters. This used to be `Before=sddm.service` with only
+# `After=network.target`, which fires before any interface has an address --
+# so the login screen showed placeholders ("Standby Link", "0 minute", "0%")
+# instead of real values. network-online.target waits for actual connectivity.
+Wants=network-online.target
+After=network-online.target local-fs.target
+Before=sddm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/sddm-telemetry-update
+RemainAfterExit=no
+# Do not hold up the login screen if the network is slow or absent.
+TimeoutStartSec=15
+
+[Install]
+WantedBy=sddm.service

@@ -1,0 +1,91 @@
+# ==============================================================================
+# CYBER NOIR WORKSTATION // SWAYLOCK SCREEN LOCK CONFIGURATION
+# ==============================================================================
+# Targets UPSTREAM swaylock (1.8.x), which is what CachyOS ships.
+#
+# IMPORTANT: swaylock treats every line here as a long-form CLI option and
+# aborts with a usage error on anything it does not recognise -- it does not
+# warn and carry on. A single bad line therefore breaks locking completely
+# (Super+Ctrl+L, the Waybar power menu, swayidle's auto-lock and the
+# lock-before-suspend hook all silently do nothing).
+#
+# Two classes of breakage were removed from this file:
+#   * `blur`, `clock`, `timestr`, `datestr` -- these are swaylock-EFFECTS
+#     options. Upstream swaylock rejects them outright.
+#   * a bare `indicator` line -- upstream has no `--indicator` flag, only
+#     longer ones sharing that prefix, so getopt failed with
+#     "option '--indicator' is ambiguous".
+#
+# Validate any edit WITHOUT locking yourself out:
+#   WAYLAND_DISPLAY=nonexistent swaylock --config ~/.config/swaylock/config
+# "Unable to connect to the compositor" = the config parsed cleanly.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. BACKGROUND
+# ------------------------------------------------------------------------------
+# swaylock does expand a leading ~ in the config file, so this stays portable.
+image=~/.local/share/wallpapers/cyber_noir_4k.png
+scaling=fill
+
+# Colour shown before the image is decoded, and if it ever fails to load.
+color=090C14
+
+# ------------------------------------------------------------------------------
+# 2. INDICATOR GEOMETRY
+# ------------------------------------------------------------------------------
+# Keep the ring on screen while idle instead of only during typing. This is the
+# upstream equivalent of the bare `indicator` line that used to be here.
+indicator-idle-visible
+
+# Restrained on purpose. The ring used to be radius 120 / thickness 14 in full
+# accent cyan, which read as decoration -- a permanently-lit neon hoop that said
+# nothing, because it looked identical whether the machine was idle, verifying or
+# rejecting a password. At 90/6 in muted slate it recedes into the wallpaper, and
+# colour is spent only where it carries meaning: cyan while verifying, amber for
+# caps-lock and cleared input, red on a failed attempt (section 4).
+indicator-radius=90
+indicator-thickness=6
+indicator-caps-lock
+
+# Surface a failed-attempt counter -- useful feedback when a fingerprint scan
+# is rejected and the lock falls back to the password prompt.
+show-failed-attempts
+
+# ------------------------------------------------------------------------------
+# 3. TYPOGRAPHY
+# ------------------------------------------------------------------------------
+font=JetBrains Mono Nerd Font
+font-size=20
+
+# ------------------------------------------------------------------------------
+# 4. CYBER STUDIO COLOUR TOKENS (hex, no leading #)
+# ------------------------------------------------------------------------------
+inside-color=0F172ACC
+inside-clear-color=1E293BE6
+inside-caps-lock-color=1E293BE6
+inside-ver-color=38BDF8E6
+inside-wrong-color=EF4444E6
+
+ring-color=94A3B8
+ring-clear-color=FBBF24
+ring-caps-lock-color=FBBF24
+ring-ver-color=22C55E
+ring-wrong-color=EF4444
+
+key-hl-color=22C55E
+bs-hl-color=EF4444
+caps-lock-key-hl-color=22C55E
+caps-lock-bs-hl-color=FBBF24
+
+text-color=E2E8F0
+text-clear-color=F8FAFC
+text-ver-color=0F172A
+text-wrong-color=0F172A
+text-caps-lock-color=F8FAFC
+
+line-color=334155
+line-clear-color=FBBF24
+line-ver-color=22C55E
+line-wrong-color=EF4444
+separator-color=00000000

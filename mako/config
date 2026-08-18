@@ -1,0 +1,111 @@
+# ==============================================================================
+# CYBER NOIR WORKSTATION // MAKO NOTIFICATION DAEMON CONFIGURATION
+# ==============================================================================
+# Engineered for CachyOS Wayland environments. Provides high-clarity DevOps
+# system alerting, clean typography, glassmorphic compositing, and DND states.
+#
+# Colours mirror ../PALETTE.md:
+#   - Background: bg #090C14 (with alpha for compositor blur)
+#   - Border:     accent #38BDF8, 1px, 10px radius
+#   - Text:       text-2 #CBD5E1
+#   - Urgency tiers recolour the border only: text-3 / accent / err
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. CORE ARCHITECTURE & TYPOGRAPHY
+# ------------------------------------------------------------------------------
+font=JetBrainsMono Nerd Font 10.5
+anchor=top-right
+
+# Position below Waybar on top right (Top Margin: 48px, Right Margin: 16px)
+margin=48,16,16,16
+padding=14,18,14,18
+width=360
+height=140
+max-visible=5
+layer=overlay
+output=active
+
+# ------------------------------------------------------------------------------
+# 2. VISUAL STYLES & CYBER NOIR DESIGN TOKENS
+# ------------------------------------------------------------------------------
+# Black background with hex alpha for Wayfire/SwayFX blur (matches Waybar obsidian)
+background-color=#090C14EB
+text-color=#CBD5E1
+
+# Accent border, 1px frame, rounded geometry
+border-color=#38BDF8
+border-size=1
+border-radius=10
+
+# Progress bar rendering for systemic audio, display brightness, & battery alarms
+progress-color=over #38BDF8
+
+# Clean textual layout formatting with icon integration
+format=<b>%s</b>\n%b
+icons=1
+max-icon-size=44
+icon-location=left
+markup=1
+actions=1
+
+# ------------------------------------------------------------------------------
+# 3. TIMOUTS & INTERACTIVE MOUSE CONTROLS
+# ------------------------------------------------------------------------------
+# Standard notification duration in milliseconds (5.5 seconds)
+default-timeout=5500
+ignore-timeout=1
+
+# Mouse click actions
+on-button-left=dismiss
+on-button-right=dismiss-all
+on-button-middle=invoke-default-action
+on-touch=dismiss
+
+# ------------------------------------------------------------------------------
+# 4. URGENCY & SEVERITY TIERS (DevOps Alert System)
+# ------------------------------------------------------------------------------
+# Low Priority (Routine background updates / minor daemon syncs)
+[urgency=low]
+border-color=#64748B
+text-color=#94A3B8
+default-timeout=3000
+
+# Normal Priority (Standard desktop popups, SSH notices, compilation updates)
+[urgency=normal]
+border-color=#38BDF8
+text-color=#F8FAFC
+default-timeout=5500
+
+# Critical Priority (Security breaches, hardware failure, disk 99%, out-of-memory)
+[urgency=critical]
+background-color=#111827F2
+border-color=#EF4444
+text-color=#FCA5A5
+default-timeout=0
+ignore-timeout=1
+
+# ------------------------------------------------------------------------------
+# 5. SPECIAL OPERATIONAL MODES & APPLICATION GROUPING
+# ------------------------------------------------------------------------------
+# Do-Not-Disturb (DND) Mode: Suppressed completely during focus engineering hours.
+# Toggle dynamically via Sway keybinding: $mod+m
+[mode=dnd]
+invisible=1
+
+# Audio & Backlight OSD overriders (Rapid replacement without popup queues)
+[category="osd"]
+default-timeout=1500
+group-by=category
+border-color=#38BDF8
+
+# Media Player integration (Spotify / MPV / Playerctl notifications)
+[app-name="Spotify"]
+border-color=#38BDF8
+default-timeout=3500
+group-by=app-name
+
+[app-name="playerctl"]
+border-color=#38BDF8
+default-timeout=2500
+group-by=app-name

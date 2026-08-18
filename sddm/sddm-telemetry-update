@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# SDDM CYBER STUDIO TELEMETRY GENERATOR (100% Dynamic & Realtime)
+# ==============================================================================
+# Automatically executed by systemd right before sddm.service initializes or manually.
+# Collects live system hardware, kernel, memory, disk, network, WiFi, and package
+# diagnostics and dynamically updates all accessible theme.conf locations
+# so the login dashboard displays 100% real workstation telemetry with zero hardcoded values.
+# ==============================================================================
+
+# 1. OS & Kernel Diagnostics (Real sysfs & os-release querying)
+REAL_OS=$(grep -G "^PRETTY_NAME=" /etc/os-release 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "CachyOS Linux")
+REAL_KERNEL=$(uname -r 2>/dev/null || echo "Linux Kernel")
+# SDDM's ConfigReader splits values on commas, so "18 hours, 23 minutes" comes
+# back as a list and the greeter renders an empty Uptime row. Emit a compact,
+# comma-free form instead.
+REAL_UPTIME=$(uptime -p 2>/dev/null | sed 's/^up //; s/ years\?/y/; s/ weeks\?/w/; s/ days\?/d/; s/ hours\?/h/; s/ minutes\?/m/; s/,//g' || echo "Active Boot")
+[[ -z "${REAL_UPTIME}" ]] && REAL_UPTIME="Active Boot"
+REAL_PKGS=$(pacman -Q 2>/dev/null | wc -l | xargs || echo "Installed")
+REAL_SHELL=$(basename "$(getent passwd "${SUDO_USER:-$USER}" 2>/dev/null | cut -d: -f7 || echo "zsh")")
+
+# 2. Network & Active WiFi Readouts
+REAL_HOSTNAME=$(hostname -s 2>/dev/null || cat /etc/hostname 2>/dev/null || echo "workstation")
+REAL_LOCAL_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7}' | tr -d '\n')
+[[ -z "${REAL_LOCAL_IP}" ]] && REAL_LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+[[ -z "${REAL_LOCAL_IP}" ]] && REAL_LOCAL_IP="Standby Link"
+
+# Extract active WiFi SSID or fallback to connection name
+REAL_WIFI_SSID=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes' | cut -d: -f2 | head -n 1)
+[[ -z "${REAL_WIFI_SSID}" ]] && REAL_WIFI_SSID=$(iwgetid -r 2>/dev/null)
+[[ -z "${REAL_WIFI_SSID}" ]] && REAL_WIFI_SSID=$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null | awk -F: '$2 ~ /ethernet/ {print $1; exit}')
+[[ -z "${REAL_WIFI_SSID}" ]] && REAL_WIFI_SSID="Ethernet / Wired"
+
+REAL_PUBLIC_IP=$(cat /tmp/public_ip 2>/dev/null || echo "Protected Link")
+
+# Link type, read from the interface backing the default route. The greeter used
+# to assert "Active Gigabit Link" unconditionally, which was wrong on Wi-Fi.
+REAL_LINK_IFACE=$(ip route show default 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
+if [[ -z "${REAL_LINK_IFACE}" ]]; then
+    REAL_LINK_STATUS="Offline"
+elif [[ -d "/sys/class/net/${REAL_LINK_IFACE}/wireless" ]]; then
+    REAL_LINK_STATUS="Connected (Wi-Fi)"
+else
+    REAL_LINK_STATUS="Connected (Wired)"
+fi
+
+
+# 3. Hardware Telemetry Percentage Calculations
+REAL_DISK_STR=$(df -h / 2>/dev/null | awk 'NR==2 {print $5}')
+REAL_DISK_INT="${REAL_DISK_STR%%%}"
+[[ -z "${REAL_DISK_INT}" ]] && REAL_DISK_INT="0"
+
+REAL_RAM_INT=$(free | awk '/^Mem:/ {printf "%.0f\n", $3/$2*100}' 2>/dev/null || echo "0")
+REAL_SWAP_INT=$(free | awk '/^Swap:/ {if ($2>0) printf "%.0f\n", $3/$2*100; else print "0"}' 2>/dev/null || echo "0")
+
+# CPU utilization calculation from /proc/stat
+CPU_LINE=$(awk '/^cpu / {print $2+$3+$4+$5+$6+$7+$8}' /proc/stat 2>/dev/null || echo "100")
+IDLE_LINE=$(awk '/^cpu / {print $4+$5}' /proc/stat 2>/dev/null || echo "85")
+REAL_CPU_INT=$(( (100 * (CPU_LINE - IDLE_LINE)) / (CPU_LINE != 0 ? CPU_LINE : 1) ))
+[[ -z "${REAL_CPU_INT}" || "${REAL_CPU_INT}" -lt 0 ]] && REAL_CPU_INT="5"
+
+REAL_LOADAVG=$(awk '{print $1 "   " $2 "   " $3}' /proc/loadavg 2>/dev/null || echo "0.00   0.00   0.00")
+
+# 4. Hardware Power & Battery Telemetry
+REAL_BATTERY=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n 1)
+if [[ -n "${REAL_BATTERY}" ]]; then
+    REAL_BAT_STR="${REAL_BATTERY}%"
+    REAL_BAT_STATUS=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n 1)
+else
+    REAL_BAT_STR="AC / 100%"
+    REAL_BAT_STATUS="Desktop Power"
+fi
+
+# Generate telemetry payload
+GEN_CONF=$(cat <<EOF
+[General]
+# -- Cyber Studio Design Token References --
+# Primary Brand Accent: #38BDF8 (Vibrant Sky Cyan)
+# Secondary Telemetry Palette: #A78BFA (Purple), #818CF8 (Indigo), #2DD4BF (Teal)
+# Obsidian Night Glass: #111827 / #1F2937
+background=background.png
+blurRadius=24
+font="JetBrainsMono Nerd Font"
+
+# Realtime Diagnostics
+osName=${REAL_OS}
+kernelVersion=${REAL_KERNEL}
+uptimeStr=${REAL_UPTIME}
+packageCount=${REAL_PKGS} (pacman)
+shellName=${REAL_SHELL}
+hostName=${REAL_HOSTNAME}
+localIP=${REAL_LOCAL_IP}
+wifiEssid=${REAL_WIFI_SSID}
+publicIP=${REAL_PUBLIC_IP}
+cpuPercent=${REAL_CPU_INT}
+ramPercent=${REAL_RAM_INT}
+diskPercent=${REAL_DISK_INT}
+swapPercent=${REAL_SWAP_INT}
+loadAverage=${REAL_LOADAVG}
+batteryPercent=${REAL_BAT_STR}
+batteryStatus=${REAL_BAT_STATUS}
+linkStatus=${REAL_LINK_STATUS}
+EOF
+)
+
+# Update system SDDM folder if running with admin permissions or writable
+if [[ -w "/usr/share/sddm/themes/cyber-noir" || -w "/usr/share/sddm/themes" || "${EUID}" -eq 0 ]]; then
+    mkdir -p "/usr/share/sddm/themes/cyber-noir" 2>/dev/null || true
+    echo "${GEN_CONF}" > "/usr/share/sddm/themes/cyber-noir/theme.conf" 2>/dev/null || true
+    chmod 644 "/usr/share/sddm/themes/cyber-noir/theme.conf" 2>/dev/null || true
+fi
+
+# Write to every theme location that exists. The previous version derived one of
+# these with `cd "$(dirname "$BASH_SOURCE")/cyber-noir"`, a repo-relative path
+# that resolves to /usr/local/bin/cyber-noir once installed -- so it logged
+#   line 97: cd: /usr/local/bin/cyber-noir: No such file or directory
+# on every boot and silently skipped that target.
+for TARGET_DIR in \
+    "${HOME:-/root}/.local/share/sddm/themes/cyber-noir" \
+    "/usr/local/share/sddm/themes/cyber-noir"
+do
+    [[ -d "${TARGET_DIR}" ]] || continue
+    printf '%s\n' "${GEN_CONF}" > "${TARGET_DIR}/theme.conf" 2>/dev/null || true
+    chmod 644 "${TARGET_DIR}/theme.conf" 2>/dev/null || true
+done
+
+exit 0

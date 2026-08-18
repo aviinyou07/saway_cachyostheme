@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Sway (Cyber Studio)
+Comment=An i3-compatible Wayland compositor optimized for CachyOS & Hybrid GPUs
+Exec=/usr/local/bin/sway-cyber-noir
+Type=Application
+DesktopNames=sway;wlroots

@@ -1,0 +1,16 @@
+$1               .-/-/+.
+$1         .----:.-/+ooooooooooo+.
+$1      .---.    :oooooooooooooooo+.
+$1    .-.      :oooooooooooooooooooo.
+$2   .       .ooooo  .-:++ooooooooooo.
+$2          +ooooooo+  / -:-   --+ooo:
+$2         :ooooooooo+    +o+     -ooo
+$2        /oooooooooooo   /oooo   .ooo/
+$1       /ooooooooooooo-  oooooooooooo/
+$1       /ooooooooo/+--/ ooooooooooo/
+$1      .oooooooooo:  ./ /ooooooooooo
+$2      .ooooooooooo. -:/+ooooooooooo.
+$2        :ooooooooo+++oooooooooooo-
+$2         .oooooooooooooooooooooo-
+$2           -/oooooooooooooooo+-
+$1              .-/++oooooo++:-

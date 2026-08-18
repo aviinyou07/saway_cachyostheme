@@ -1,0 +1,401 @@
+/* =============================================================================
+ * CYBER STUDIO WORKSTATION // WAYBAR STYLING
+ * =============================================================================
+ * Island layout, compact density, dynamic colour states.
+ * Colours mirror ../PALETTE.md. GTK3 CSS only -- no web-only properties.
+ * ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+ * 1. RESET & TYPOGRAPHY
+ * ----------------------------------------------------------------------------- */
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "JetBrains Mono Nerd Font", "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 600;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * 2. BAR CONTAINER — floating obsidian glass
+ * ----------------------------------------------------------------------------- */
+window#waybar {
+    background-color: rgba(9, 12, 20, 0.92);
+    color: #CBD5E1;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255,255,255,0.04) inset;
+}
+
+window#waybar.hidden { opacity: 0.2; }
+
+/* -----------------------------------------------------------------------------
+ * 3. ISLAND SEPARATORS
+ * ----------------------------------------------------------------------------- */
+#custom-sep,
+#custom-sep2,
+#custom-sep3,
+#custom-sep4,
+#custom-sep5,
+#custom-sep6,
+#custom-sep7 {
+    color: rgba(255, 255, 255, 0.10);
+    font-size: 13px;
+    padding: 0 4px;
+    margin: 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * 4. LAUNCHER BUTTON
+ * ----------------------------------------------------------------------------- */
+#custom-launcher {
+    font-size: 15px;
+    font-weight: 900;
+    color: #38BDF8;
+    padding: 0 10px 0 12px;
+    margin: 3px 0;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+#custom-launcher:hover {
+    background-color: rgba(56, 189, 248, 0.12);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+/* -----------------------------------------------------------------------------
+ * 5. WORKSPACES — compact underline style
+ * ----------------------------------------------------------------------------- */
+#workspaces {
+    background: transparent;
+    padding: 0 2px;
+}
+
+#workspaces button {
+    background: transparent;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 5px;
+    margin: 3px 1px;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s ease;
+}
+
+#workspaces button:hover {
+    color: #94A3B8;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+}
+
+#workspaces button.focused,
+#workspaces button.active {
+    color: #38BDF8;
+    font-weight: 800;
+    border-bottom: 2px solid #38BDF8;
+}
+
+#workspaces button.urgent {
+    color: #EF4444;
+    border-bottom: 2px solid #EF4444;
+    animation: blink_urgent 0.8s infinite;
+}
+
+@keyframes blink_urgent {
+    0%   { background: transparent; }
+    50%  { background: rgba(239, 68, 68, 0.15); }
+    100% { background: transparent; }
+}
+
+/* -----------------------------------------------------------------------------
+ * 6. MODE & SCRATCHPAD
+ * ----------------------------------------------------------------------------- */
+#mode {
+    font-size: 10px;
+    padding: 2px 8px;
+    margin: 3px 4px;
+    border-radius: 4px;
+}
+
+#scratchpad {
+    color: #64748B;
+    font-size: 11px;
+    padding: 3px 8px;
+    margin: 3px 2px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 7. GIT BRANCH
+ * ----------------------------------------------------------------------------- */
+#custom-git {
+    color: #A78BFA;
+    font-size: 11px;
+    padding: 3px 10px;
+    margin: 3px 2px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+#custom-git.active {
+    color: #A78BFA;
+    border-color: rgba(167, 139, 250, 0.2);
+    background: rgba(167, 139, 250, 0.06);
+}
+
+#custom-git.none {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    min-width: 0;
+    font-size: 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * 8. CLOCK & WINDOW TITLE
+ * ----------------------------------------------------------------------------- */
+#clock {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0 8px;
+    margin: 3px 4px;
+    color: #64748B;
+    letter-spacing: 0.3px;
+}
+
+#window {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 12px;
+    margin: 3px 2px;
+}
+
+/* -----------------------------------------------------------------------------
+ * 9. TELEMETRY PILLS — shared base
+ * ----------------------------------------------------------------------------- */
+#cpu,
+#memory,
+#disk,
+#network,
+#custom-vpn,
+#custom-cputemp,
+#custom-ping,
+#custom-updates,
+#custom-weather,
+#custom-pomodoro,
+#mpris,
+#custom-cliphist,
+#battery,
+#backlight,
+#pulseaudio,
+#bluetooth {
+    background-color: rgba(17, 24, 39, 0.80);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+    color: #CBD5E1;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    margin: 3px 2px;
+    transition: all 0.2s ease;
+    /* Tabular numbers to prevent layout shifts */
+}
+
+#cpu:hover,
+#memory:hover,
+#disk:hover,
+#network:hover,
+#custom-ping:hover,
+#custom-cputemp:hover,
+#custom-updates:hover,
+#custom-weather:hover,
+#custom-pomodoro:hover,
+#mpris:hover,
+#custom-cliphist:hover,
+#battery:hover,
+#backlight:hover,
+#pulseaudio:hover,
+#bluetooth:hover {
+    background-color: rgba(30, 41, 59, 0.90);
+    border-color: rgba(56, 189, 248, 0.30);
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.12);
+}
+
+/* -----------------------------------------------------------------------------
+ * 10. CPU DYNAMIC COLOR STATES
+ * ----------------------------------------------------------------------------- */
+#cpu.warning {
+    color: #FBBF24;
+    border-color: rgba(251, 191, 36, 0.3);
+}
+#cpu.critical {
+    color: #EF4444;
+    border-color: rgba(239, 68, 68, 0.4);
+    animation: blink_heat 1s infinite;
+}
+
+/* -----------------------------------------------------------------------------
+ * 11. MEMORY DYNAMIC COLOR STATES
+ * ----------------------------------------------------------------------------- */
+#memory.warning  { color: #FBBF24; border-color: rgba(251, 191, 36, 0.3); }
+#memory.critical { color: #EF4444; border-color: rgba(239, 68, 68, 0.4); }
+
+/* -----------------------------------------------------------------------------
+ * 12. DISK DYNAMIC COLOR STATES
+ * ----------------------------------------------------------------------------- */
+#disk.warning  { color: #FBBF24; border-color: rgba(251, 191, 36, 0.3); }
+#disk.critical { color: #EF4444; border-color: rgba(239, 68, 68, 0.4); }
+
+/* -----------------------------------------------------------------------------
+ * 13. CPU TEMPERATURE COLORS
+ * ----------------------------------------------------------------------------- */
+#custom-cputemp.cool     { color: #22C55E; }
+#custom-cputemp.warm     { color: #FBBF24; border-color: rgba(251, 191, 36, 0.25); }
+#custom-cputemp.hot      { color: #FB923C; border-color: rgba(251, 146, 60, 0.35); }
+#custom-cputemp.critical {
+    color: #EF4444;
+    border-color: rgba(239, 68, 68, 0.45);
+    animation: blink_heat 0.8s infinite;
+}
+#custom-cputemp.unknown  { font-size: 0; padding: 0; margin: 0; min-width: 0; }
+
+@keyframes blink_heat {
+    0%   { border-color: rgba(239, 68, 68, 0.4); }
+    50%  { border-color: rgba(239, 68, 68, 0.9); }
+    100% { border-color: rgba(239, 68, 68, 0.4); }
+}
+
+/* -----------------------------------------------------------------------------
+ * 14. PING LATENCY COLORS
+ * ----------------------------------------------------------------------------- */
+#custom-ping.low     { color: #22C55E; }
+#custom-ping.mid     { color: #FBBF24; }
+#custom-ping.high    { color: #EF4444; border-color: rgba(239, 68, 68, 0.3); }
+#custom-ping.offline { color: #64748B; font-size: 0; padding: 0; margin: 0; min-width: 0; }
+
+/* -----------------------------------------------------------------------------
+ * 15. VPN STATES
+ * ----------------------------------------------------------------------------- */
+#custom-vpn.connected {
+    color: #A9F5C2;
+    border-color: rgba(34, 197, 94, 0.35);
+    background-color: rgba(34, 197, 94, 0.08);
+}
+
+#custom-vpn.connected:hover {
+    border-color: rgba(34, 197, 94, 0.55);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
+}
+
+#custom-vpn.disconnected {
+    padding: 0; margin: 0;
+    border: none; background: transparent;
+    min-width: 0; font-size: 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * 16. BATTERY STATES
+ * ----------------------------------------------------------------------------- */
+#battery.charging, #battery.plugged {
+    color: #A9F5C2;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+#battery.warning:not(.charging) {
+    color: #FBBF24;
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+#battery.critical:not(.charging) {
+    color: #FCA5A5;
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
+    animation: blink_heat 1s infinite;
+}
+
+/* Collapse modules whose format is an empty string, so they leave no ghost
+ * capsule behind. Every other optional module already does this; bluetooth was
+ * missed, which is why an empty pill floated in the bar whenever BT was off. */
+#bluetooth.off,
+#bluetooth.disabled,
+#bluetooth.no-controller {
+    font-size: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+    border: none;
+    background: transparent;
+}
+
+/* -----------------------------------------------------------------------------
+ * 17. AUDIO MUTED STATE
+ * ----------------------------------------------------------------------------- */
+#pulseaudio.muted {
+    color: #EF4444;
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+/* -----------------------------------------------------------------------------
+ * 18. POWER BUTTON
+ * ----------------------------------------------------------------------------- */
+#custom-power {
+    color: #EF4444;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.20);
+    border-radius: 6px;
+    font-size: 12px;
+    padding: 2px 12px;
+    margin: 3px 10px 3px 4px;
+    transition: all 0.2s ease;
+}
+
+#custom-power:hover {
+    background: #EF4444;
+    color: #F8FAFC;
+    border-color: #EF4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+/* -----------------------------------------------------------------------------
+ * 19. TOOLTIP
+ * ----------------------------------------------------------------------------- */
+tooltip {
+    background: rgba(9, 12, 20, 0.97);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.75);
+    padding: 8px;
+}
+
+tooltip label {
+    color: #CBD5E1;
+    font-family: "JetBrains Mono Nerd Font", monospace;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* -----------------------------------------------------------------------------
+ * 20. NEW MODULES (Updates, Pomodoro, MPRIS)
+ * ----------------------------------------------------------------------------- */
+#custom-updates.updated { font-size: 0; padding: 0; margin: 0; min-width: 0; }
+#custom-updates.pending { color: #38BDF8; }
+#custom-updates.warning { color: #FBBF24; border-color: rgba(251, 191, 36, 0.3); }
+#custom-updates.critical { color: #EF4444; border-color: rgba(239, 68, 68, 0.4); animation: blink_heat 1s infinite; }
+
+#custom-pomodoro.stopped { color: #64748B; }
+#custom-pomodoro.running-work { color: #EF4444; border-color: rgba(239, 68, 68, 0.3); }
+#custom-pomodoro.running-break { color: #22C55E; border-color: rgba(34, 197, 94, 0.3); }
+#custom-pomodoro.paused { color: #FBBF24; }
+#custom-pomodoro.finished { color: #38BDF8; border-color: rgba(56, 189, 248, 0.3); animation: blink_heat 1s infinite; }
+#custom-pomodoro.stopped-break { color: #2DD4BF; }
+
+#mpris.paused { color: #64748B; }
+#mpris.playing { color: #38BDF8; }
+
+#custom-cliphist { color: #A78BFA; }

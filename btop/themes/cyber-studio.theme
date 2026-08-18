@@ -1,0 +1,84 @@
+# Main background, empty for terminal default, need to be empty if you want transparent background
+theme[main_bg]="#111827"
+
+# Main text color
+theme[main_fg]="#F8FAFC"
+
+# Title color for boxes
+theme[title]="#F8FAFC"
+
+# Highlight color for keyboard shortcuts
+theme[hi_fg]="#38BDF8"
+
+# Background color of selected item in processes box
+theme[selected_bg]="#1E293B"
+
+# Foreground color of selected item in processes box
+theme[selected_fg]="#38BDF8"
+
+# Color of inactive/disabled text
+theme[inactive_fg]="#64748B"
+
+# Color of text appearing on top of graphs, i.e uptime and current network graph scaling
+theme[graph_text]="#CBD5E1"
+
+# Background color of the percentage meters
+theme[meter_bg]="#1E293B"
+
+# Misc colors for processes box including mini cpu graphs, details memory graph and details status text
+theme[proc_misc]="#22C55E"
+
+# Cpu box outline color
+theme[cpu_box]="#38BDF8"
+
+# Memory/disks box outline color
+theme[mem_box]="#818CF8"
+
+# Net up/down box outline color
+theme[net_box]="#A78BFA"
+
+# Processes box outline color
+theme[proc_box]="#38BDF8"
+
+# Box divider line and small boxes line color
+theme[div_line]="#334155"
+
+# Temperature graph colors
+theme[temp_start]="#38BDF8"
+theme[temp_mid]="#FBBF24"
+theme[temp_end]="#EF4444"
+
+# CPU graph colors
+theme[cpu_start]="#38BDF8"
+theme[cpu_mid]="#818CF8"
+theme[cpu_end]="#A78BFA"
+
+# Mem/Disk free meter
+theme[free_start]="#22C55E"
+theme[free_mid]="#22C55E"
+theme[free_end]="#22C55E"
+
+# Mem/Disk cached meter
+theme[cached_start]="#FBBF24"
+theme[cached_mid]="#FBBF24"
+theme[cached_end]="#FBBF24"
+
+# Mem/Disk available meter
+theme[available_start]="#38BDF8"
+theme[available_mid]="#38BDF8"
+theme[available_end]="#38BDF8"
+
+# Mem/Disk used meter
+theme[used_start]="#EF4444"
+theme[used_mid]="#EF4444"
+theme[used_end]="#EF4444"
+
+# Download graph colors
+theme[download_start]="#22C55E"
+theme[download_mid]="#22C55E"
+theme[download_end]="#22C55E"
+
+# Upload graph colors
+theme[upload_start]="#EF4444"
+theme[upload_mid]="#EF4444"
+theme[upload_end]="#EF4444"

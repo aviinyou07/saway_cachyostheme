@@ -1,0 +1,359 @@
+// =============================================================================
+// CYBER STUDIO WORKSTATION // WAYBAR
+// =============================================================================
+// CachyOS + Sway Wayland — Compact, information-dense, professional.
+// Island-grouped modules, dynamic color telemetry, git branch, ping, CPU temp.
+// =============================================================================
+{
+    "layer": "top",
+    "position": "top",
+    "height": 34,
+    "spacing": 4,
+    "margin-top": 6,
+    "margin-left": 12,
+    "margin-right": 12,
+
+    // -------------------------------------------------------------------------
+    // MODULE LAYOUT — Island groups with separators
+    // -------------------------------------------------------------------------
+    "modules-left": [
+        "custom/launcher",
+        "custom/sep",
+        "sway/workspaces",
+        "sway/mode",
+        "sway/scratchpad",
+        "custom/sep2",
+        "custom/git",
+        "custom/updates",
+        "custom/weather"
+    ],
+    "modules-center": [
+        "custom/pomodoro",
+        "custom/sep3",
+        "clock",
+        "custom/sep4",
+        "mpris",
+        "sway/window"
+    ],
+    "modules-right": [
+        "custom/cputemp",
+        "cpu",
+        "memory",
+        "disk",
+        "custom/sep5",
+        "custom/ping",
+        "network",
+        "custom/vpn",
+        "custom/sep6",
+        "custom/cliphist",
+        "battery",
+        "backlight",
+        "pulseaudio",
+        "bluetooth",
+        "custom/sep7",
+        "custom/power"
+    ],
+
+    // -------------------------------------------------------------------------
+    // LEFT — LAUNCHER
+    // -------------------------------------------------------------------------
+    "custom/launcher": {
+        "format": "󰣇",
+        "tooltip": false,
+        "on-click": "pkill -x wofi || wofi --show drun --conf ~/.config/wofi/config --style ~/.config/wofi/style.css",
+        "on-click-right": "~/.config/sway/scripts/wallpaper-switch.sh -n"
+    },
+
+    // Separators (visual island dividers)
+    "custom/sep":  { "format": "│", "tooltip": false },
+    "custom/sep2": { "format": "│", "tooltip": false },
+    "custom/sep3": { "format": "│", "tooltip": false },
+    "custom/sep4": { "format": "│", "tooltip": false },
+    "custom/sep5": { "format": "│", "tooltip": false },
+    "custom/sep6": { "format": "│", "tooltip": false },
+    "custom/sep7": { "format": "│", "tooltip": false },
+
+    // -------------------------------------------------------------------------
+    // LEFT — WORKSPACES
+    // -------------------------------------------------------------------------
+    "sway/workspaces": {
+        "disable-scroll": true,
+        "all-outputs": true,
+        "warp-on-scroll": false,
+        "format": "{name}",
+        "format-icons": {
+            "urgent":  "󰀨",
+            "focused": "",
+            "default": ""
+        }
+    },
+
+    "sway/mode": {
+        "format": "<span background='#EF4444' color='#FFFFFF'>  {} </span>",
+        "tooltip": false
+    },
+
+    "sway/scratchpad": {
+        "format": "{icon} {count}",
+        "show-empty": false,
+        "format-icons": ["", ""],
+        "tooltip": true,
+        "tooltip-format": "{app}: {title}"
+    },
+
+    // -------------------------------------------------------------------------
+    // LEFT — GIT BRANCH, UPDATES, WEATHER
+    // -------------------------------------------------------------------------
+    "custom/git": {
+        "interval": 10,
+        "exec": "~/.config/waybar/scripts/git_branch.sh",
+        "return-type": "json",
+        "format": "{}",
+        "tooltip": true
+    },
+
+    "custom/updates": {
+        "interval": 3600,
+        "exec": "~/.config/waybar/scripts/updates.sh",
+        "return-type": "json",
+        "format": "{}",
+        "tooltip": true,
+        "on-click": "kitty -e sh -c 'for h in paru yay pacman; do command -v $h >/dev/null && { [ $h = pacman ] && exec sudo pacman -Syu || exec $h -Syu; }; done; echo \"No AUR helper or pacman found\"; read -r _'"
+    },
+
+    "custom/weather": {
+        "interval": 1800,
+        "exec": "~/.config/waybar/scripts/weather.sh",
+        "return-type": "json",
+        "format": "{}",
+        "tooltip": true
+    },
+
+    // -------------------------------------------------------------------------
+    // CENTER — POMODORO, CLOCK, MEDIA, WINDOW TITLE
+    // -------------------------------------------------------------------------
+    "custom/pomodoro": {
+        "interval": 1,
+        "exec": "~/.config/waybar/scripts/pomodoro.sh",
+        "return-type": "json",
+        "format": "{}",
+        "tooltip": true,
+        "on-click": "~/.config/waybar/scripts/pomodoro.sh toggle",
+        "on-click-right": "~/.config/waybar/scripts/pomodoro.sh reset",
+        "on-click-middle": "~/.config/waybar/scripts/pomodoro.sh break"
+    },
+
+    "clock": {
+        "interval": 1,
+        "format": "{:%a %d %b  <span color='#F8FAFC' font_weight='bold'>%H:%M</span>}",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "calendar": {
+            "mode": "month",
+            "mode-mon-col": 3,
+            "weeks-pos": "right",
+            "on-scroll": 1,
+            "format": {
+                "months":   "<span color='#38BDF8'><b>{}</b></span>",
+                "days":     "<span color='#F8FAFC'><b>{}</b></span>",
+                "weeks":    "<span color='#64748B'>W{}</span>",
+                "weekdays": "<span color='#22C55E'><b>{}</b></span>",
+                "today":    "<span color='#0B0F19' background='#38BDF8'><b>{}</b></span>"
+            }
+        },
+        "actions": {
+            "on-click-right": "mode",
+            "on-scroll-up": "tz_up",
+            "on-scroll-down": "tz_down"
+        }
+    },
+
+    "mpris": {
+        "format": "{player_icon} {dynamic}",
+        "format-paused": "{status_icon} <i>{dynamic}</i>",
+        "player-icons": {
+            "default": "󰎆",
+            "spotify": "",
+            "firefox": "󰈹",
+            "chromium": "",
+            "brave": "",
+            "edge": "󰇩"
+        },
+        "status-icons": {
+            "paused": "󰏤"
+        },
+        "dynamic-order": ["title", "artist"],
+        "dynamic-importance-order": ["title", "artist"],
+        "dynamic-len": 20,
+        "tooltip-format": "{player} ({status})\n{title} - {artist}\n{album}",
+        "on-click": "playerctl play-pause",
+        "on-scroll-up": "playerctl next",
+        "on-scroll-down": "playerctl previous"
+    },
+
+    "sway/window": {
+        "format": "{}",
+        "max-length": 20,
+        "rewrite": {
+            "(.*) — Mozilla Firefox":         "󰈹 $1",
+            "(.*) — Visual Studio Code":      "󰨞 $1",
+            "(.*) - Visual Studio Code":      "󰨞 $1",
+            "(.*) — Google Chrome":           " $1",
+            "(.*) — Chromium":                " $1",
+            "(.*)Kitty":                      "󰆍 terminal",
+            "(.*)Alacritty":                  "󰆍 terminal",
+            "(.*)foot":                        "󰆍 terminal",
+            "^$":                             "󰇄 workstation"
+        },
+        "tooltip": false
+    },
+
+    // -------------------------------------------------------------------------
+    // RIGHT — TELEMETRY: CPU TEMP + CPU + RAM + DISK
+    // -------------------------------------------------------------------------
+    "custom/cputemp": {
+        "interval": 5,
+        "exec": "~/.config/waybar/scripts/cpu_temp.sh",
+        "return-type": "json",
+        "format": "{}",
+        "tooltip": true
+    },
+
+    "cpu": {
+        "interval": 2,
+        "format": "<span color='#A78BFA'></span> {usage:2}%",
+        "states": {
+            "warning": 60,
+            "critical": 85
+        },
+        "tooltip": true,
+        "tooltip-format": "CPU: {usage}%\nFreq: {avg_frequency} GHz",
+        "on-click": "kitty -e btop"
+    },
+
+    "memory": {
+        "interval": 5,
+        "format": "<span color='#818CF8'></span> {percentage:2}%",
+        "states": {
+            "warning": 70,
+            "critical": 90
+        },
+        "tooltip": true,
+        "tooltip-format": "RAM: {used:0.1f}GB / {total:0.1f}GB\nSwap: {swapUsed:0.1f}GB / {swapTotal:0.1f}GB",
+        "on-click": "kitty -e btop"
+    },
+
+    "disk": {
+        "interval": 30,
+        "format": "<span color='#38BDF8'>󰋊</span> {percentage_used:2}%",
+        "path": "/",
+        "states": {
+            "warning": 80,
+            "critical": 95
+        },
+        "tooltip": true,
+        "tooltip-format": "Disk /\nUsed: {used} / {total} ({percentage_used}%)\nFree: {free}",
+        "on-click": "kitty -e btop"
+    },
+
+    // -------------------------------------------------------------------------
+    // RIGHT — NETWORK: PING + WIFI + VPN
+    // -------------------------------------------------------------------------
+    "custom/ping": {
+        "interval": 30,
+        "exec": "~/.config/waybar/scripts/ping.sh",
+        "return-type": "json",
+        "format": "{}",
+        "tooltip": true
+    },
+
+    "network": {
+        // No "interface" on purpose: waybar then follows the default route,
+        // which works on any machine and switches with wifi/ethernet. Pinning
+        // it to this laptop's "wlan0" broke the module everywhere else.
+        "interval": 5,
+        "format-wifi": "<span color='#2DD4BF'> </span> {essid}",
+        "format-ethernet": "<span color='#2DD4BF'>󰈀 </span> {ifname}",
+        "format-linked": "󰈀 {ifname} (no ip)",
+        "format-disconnected": "<span color='#EF4444'>󰖪</span> offline",
+        "tooltip-format-wifi": "WiFi: {essid} ({signalStrength}%)\n{ifname} — {ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}",
+        "tooltip-format-ethernet": "{ifname} — {ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}",
+        "tooltip-format-disconnected": "No network",
+        "on-click": "networkmanager_dmenu"
+    },
+
+    "custom/vpn": {
+        "interval": 5,
+        "format": "{}",
+        "exec": "~/.config/waybar/scripts/vpn_status.sh",
+        "return-type": "json",
+        "tooltip": true,
+        "on-click": "nm-connection-editor"
+    },
+
+    // -------------------------------------------------------------------------
+    // RIGHT — SYSTEM: CLIPHIST + BATTERY + BACKLIGHT + AUDIO + BT
+    // -------------------------------------------------------------------------
+    "custom/cliphist": {
+        "format": "󰅌",
+        "tooltip": true,
+        "tooltip-format": "Clipboard History\nClick to open picker (Super+Shift+V)",
+        "on-click": "cliphist list | wofi --dmenu --conf ~/.config/wofi/dmenu.conf --style ~/.config/wofi/style.css -p 'Clipboard' | cliphist decode | wl-copy"
+    },
+
+    "battery": {
+        // No "bat" on purpose: waybar picks the first battery it finds. Pinning
+        // "BAT1" meant desktops and BAT0 laptops showed nothing at all.
+        "interval": 10,
+        "full-at": 100,
+        "states": {
+            "good":     85,
+            "warning":  30,
+            "critical": 15
+        },
+        "format": "<span color='#22C55E'>{icon}</span> {capacity}%",
+        "format-charging": "<span color='#22C55E'>󰂄</span> {capacity}%",
+        "format-plugged":  "<span color='#22C55E'>󰂄</span> {capacity}%",
+        "format-full":     "<span color='#22C55E'>󰁹</span> full",
+        "format-icons": ["󰂎","󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹"],
+        "tooltip": true,
+        "tooltip-format": "Battery: {capacity}%\n{timeTo}"
+    },
+
+    "backlight": {
+        "format": "<span color='#FBBF24'>{icon}</span> {percent}%",
+        "format-icons": ["󰃞","󰃟","󰃠"],
+        "scroll-step": 5,
+        "tooltip": false,
+        "on-click": "brightnessctl set 50%",
+        "on-click-right": "brightnessctl set 100%"
+    },
+
+    "pulseaudio": {
+        "format": "<span color='#F472B6'>{icon}</span> {volume}%",
+        "format-muted": "<span color='#EF4444'>󰖁</span>",
+        "format-icons": ["󰕿","󰖀","󰕾"],
+        "tooltip": false,
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-click-right": "pavucontrol"
+    },
+
+    "bluetooth": {
+        "format": "",
+        "format-disabled": "",
+        "format-off": "",
+        "format-on": "<span color='#60A5FA'>󰂯</span>",
+        "format-connected": "<span color='#38BDF8'>󰂱</span> {device_alias}",
+        "tooltip": true,
+        "tooltip-format": "Bluetooth: {status}\n{controller_alias}",
+        "on-click": "blueman-manager"
+    },
+
+    // -------------------------------------------------------------------------
+    // RIGHT — POWER BUTTON
+    // -------------------------------------------------------------------------
+    "custom/power": {
+        "format": "⏻",
+        "tooltip": false,
+        "on-click": "~/.config/waybar/scripts/power_menu.sh"
+    }
+}

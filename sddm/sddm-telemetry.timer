@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh Cyber Studio SDDM greeter telemetry periodically
+# The service alone only ever ran once, at boot, so the "live telemetry" the
+# greeter advertised was a snapshot that went stale immediately.
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

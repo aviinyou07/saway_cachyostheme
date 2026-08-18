@@ -1,0 +1,39 @@
+# Backup and temporary files
+*.bak
+*.old
+*~
+*.swp
+*.tmp
+.DS_Store
+.cache
+.config-backup-*
+scratch/
+__pycache__/
+*.pyc
+
+# ------------------------------------------------------------------------------
+# Machine-local runtime state
+# ------------------------------------------------------------------------------
+# These were previously committed, which shipped one machine's hostname, kernel
+# version, package count, IP and battery level to everyone who cloned the repo.
+.wallpaper_rotator_state
+.wallpaper_rotator_interval
+sway/.wallpaper_rotator_*
+nvim/lazy-lock.json
+
+# The SDDM greeter's theme.conf is REGENERATED at boot by sddm-telemetry-update
+# with live host telemetry. Track the template instead.
+sddm/cyber-noir/theme.conf
+
+# ------------------------------------------------------------------------------
+# Personal wallpaper collection
+# ------------------------------------------------------------------------------
+# ~/.config/sway/wallpapers is where the rotator reads from, so this directory
+# fills up with whatever art is in use -- 24M of third-party images, which is
+# both most of the repo's weight and not ours to redistribute.
+#
+# Nothing breaks by leaving it out: install.sh copies the generated 4K set from
+# wallpapers/ into ~/.config/sway/wallpapers/ as well as ~/.local/share/
+# wallpapers/, so a clone still has images for the rotator to cycle. Those are
+# built from the tracked SVG sources by wallpapers/generate_wallpaper.py.
+sway/wallpapers/

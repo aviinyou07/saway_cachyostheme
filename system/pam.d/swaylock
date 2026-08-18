@@ -1,0 +1,18 @@
+#%PAM-1.0
+# ==============================================================================
+# CYBER NOIR // SWAYLOCK PAM STACK
+# ==============================================================================
+# Installed to /etc/pam.d/swaylock
+#
+# This is deliberately the stock stack. It used to carry its own
+#     auth  sufficient  pam_fprintd.so timeout=10
+# line, from when the lock screen was the only surface with fingerprint
+# support. Fingerprint is now patched into system-auth instead -- see
+# system/patch-system-auth-fprintd.sh -- which swaylock already reaches via
+# login -> system-local-login -> system-login -> system-auth.
+#
+# Keeping both meant asking for a finger twice on the way down, so a failed
+# read burned two 10s timeouts before the password prompt appeared. One entry,
+# in the one stack every service includes, is the whole point.
+# ==============================================================================
+auth include login

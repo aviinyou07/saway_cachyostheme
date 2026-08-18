@@ -1,0 +1,54 @@
+# ==============================================================================
+# CYBER NOIR WORKSTATION // WOFI APPLICATION LAUNCHER & COMMAND PALETTE
+# ==============================================================================
+# Engineered with Raycast & Vercel design geometry: centered floating window,
+# high-performance case-insensitive fuzzy filtering, and crisp icon rendering.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. WINDOW GEOMETRY & SPATIAL PLACEMENT
+# ------------------------------------------------------------------------------
+# Centered execution panel dimensioned for rapid visual focus and zero fatigue
+location=center
+width=640
+height=460
+orientation=vertical
+content_halign=left
+
+# ------------------------------------------------------------------------------
+# 2. BEHAVIOR & OPERATIONAL MECHANICS
+# ------------------------------------------------------------------------------
+# Launch application menu by default with seamless terminal utility pass-through
+show=drun
+prompt=Search Applications // Execute Command...
+term=kitty
+layer=overlay
+
+# Case-insensitive filtering for effortless muscle-memory typing
+insensitive=true
+allow_markup=true
+sort_order=default
+filter_rate=50
+matching=fuzzy
+
+# NOTE: `hide_on_focus_loss` and `exit_on_select` used to live here. Neither is
+# a real wofi option (see wofi(5)); wofi ignored both silently. The launcher is
+# instead toggled by the `pkill -x wofi || wofi ...` binding in sway.
+
+# Activate an entry on a SINGLE mouse click.
+# wofi defaults this to false, i.e. it requires a DOUBLE click. That default is
+# what made the Waybar power menu appear to be inert: the menu opened, a single
+# click on "Power Off"/"Lock"/etc. selected the row but never activated it, wofi
+# printed nothing on exit, and the calling script fell through to its no-op
+# branch. Keyboard (arrows + Enter) always worked, which is why it looked random.
+single_click=true
+
+# ------------------------------------------------------------------------------
+# 3. ICON & VISUAL REPRESENTATION
+# ------------------------------------------------------------------------------
+# High-definition icon rendering optimized for Papirus Dark themeing
+allow_images=true
+image_size=28
+
+# Enforce dark GTK rendering context
+gtk_dark=true

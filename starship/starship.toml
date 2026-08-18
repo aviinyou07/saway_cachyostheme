@@ -1,0 +1,142 @@
+# ==============================================================================
+# CYBER STUDIO WORKSTATION // STARSHIP PROMPT
+# ==============================================================================
+# Colours mirror ../PALETTE.md so the prompt agrees with kitty's ANSI mapping.
+# ==============================================================================
+
+palette = "cyber_studio"
+
+# Automatic timeout limit for slow command interrogation & git repository status
+command_timeout = 1500
+add_newline = true
+scan_timeout = 30
+
+# ------------------------------------------------------------------------------
+# 1. PROMPT LAYOUT ARCHITECTURE
+# ------------------------------------------------------------------------------
+# Two-line geometric prompt ensuring zero text crowding on deep directory paths
+format = """
+$os\
+$directory\
+$git_branch\
+$git_status\
+$nodejs\
+$python\
+$docker_context\
+$time\
+$line_break\
+$character"""
+
+# ------------------------------------------------------------------------------
+# 2. PALETTE DEFINITION  (see ../PALETTE.md)
+# ------------------------------------------------------------------------------
+# Named after their role, not their hue, so a future retheme touches only here.
+[palettes.cyber_studio]
+accent = "#38BDF8"
+ok     = "#22C55E"
+alt    = "#A78BFA"
+info   = "#2DD4BF"
+warn   = "#FBBF24"
+err    = "#EF4444"
+text   = "#CBD5E1"
+muted  = "#64748B"
+
+# ------------------------------------------------------------------------------
+# 3. CORE TELEMETRY MODULES
+# ------------------------------------------------------------------------------
+# Operating System Indicator (CachyOS Dragon Icon / Arch Linux Logo)
+[os]
+disabled = false
+format = "[$symbol]($style)"
+style = "bold accent"
+
+[os.symbols]
+CachyOS = "󰣇 "
+Arch = " "
+Linux = " "
+
+# Directory Path Navigation & Read-Only Lock Status
+[directory]
+style = "bold accent"
+read_only = " 󰌾"
+read_only_style = "bold warn"
+truncation_length = 3
+truncation_symbol = "…/"
+format = "[$path]($style)[$read_only]($style) "
+
+# ------------------------------------------------------------------------------
+# 4. VERSION CONTROL SYSTEM (Git Branch & Status)
+# ------------------------------------------------------------------------------
+# Active Git repository branch tracker
+[git_branch]
+symbol = " "
+style = "bold green"
+format = "on [$symbol$branch]($style) "
+
+# Git repository modifications, staged additions, and divergence metrics
+[git_status]
+style = "bold warn"
+format = "([$all_status$ahead_behind]($style) )"
+conflicted = "󰞇 "
+ahead = "⇡${count} "
+behind = "⇣${count} "
+diverged = "⇕⇡${ahead_count}⇣${behind_count} "
+untracked = "? "
+stashed = " "
+modified = "! "
+staged = "+ "
+renamed = "» "
+deleted = "✘ "
+
+# ------------------------------------------------------------------------------
+# 5. RUNTIME & CONTAINER ENVIRONMENTS (Node, Python, Docker)
+# ------------------------------------------------------------------------------
+# Node.js development runtime engine tracker
+[nodejs]
+symbol = " "
+style = "bold green"
+format = "via [$symbol($version )]($style)"
+detect_extensions = ["js", "mjs", "cjs", "ts", "mts", "cts", "jsx", "tsx"]
+detect_files = ["package.json", ".node-version", ".nvmrc"]
+
+# Python development runtime & virtual environment identifier (venv / conda)
+[python]
+symbol = " "
+style = "bold cyan"
+# TOML literal string (single quotes): in a basic "..." string, \( and \) are
+# invalid escapes and the WHOLE config silently fails to parse, leaving starship
+# on its stock prompt. This one line disabled the entire theme.
+format = 'via [$symbol$pyenv_prefix($version )(\($virtualenv\) )]($style)'
+pyenv_version_name = true
+detect_extensions = ["py"]
+detect_files = ["requirements.txt", "pyproject.toml", "Pipfile", "setup.py", ".python-version"]
+
+# Docker Daemon container & Compose execution context indicator
+[docker_context]
+symbol = " "
+style = "bold green"
+format = "via [$symbol$context]($style)"
+detect_files = ["Dockerfile", "docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"]
+
+# ------------------------------------------------------------------------------
+# 6. SYSTEM TIME TIMESTAMP
+# ------------------------------------------------------------------------------
+# Realtime command completion timestamp (24-hour HH:MM:SS format)
+[time]
+disabled = false
+format = "at [ $time]($style) "
+style = "bold cyan"
+time_format = "%T"
+
+# ------------------------------------------------------------------------------
+# 7. PROMPT CHARACTER (success vs failure)
+# ------------------------------------------------------------------------------
+# Failure is `err`, not a second accent. The previous config used cyan for
+# failure, which made a failed command visually indistinguishable from the path.
+[character]
+success_symbol = "[❯](bold ok)"
+error_symbol   = "[❯](bold err)"
+vimcmd_symbol  = "[❮](bold accent)"
+vimcmd_replace_one_symbol = "[❮](bold alt)"
+vimcmd_replace_symbol     = "[❮](bold alt)"
+vimcmd_visual_symbol      = "[❮](bold warn)"

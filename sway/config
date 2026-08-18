@@ -1,0 +1,37 @@
+# ==============================================================================
+# CYBER NOIR DEVELOPER WORKSTATION // SWAY MAIN CONFIGURATION
+# OS: CachyOS Linux (Wayland / Sway)
+# ==============================================================================
+# Engineered for production DevOps & Senior Software Development workflows.
+# Highly modular architecture: Every subsystem is isolated into devoted config files.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. CORE SYSTEM VARIABLES & EXECUTABLE TARGETS
+# ------------------------------------------------------------------------------
+# Mod4 is the Super / Windows key
+set $mod Mod4
+
+# Core desktop application endpoints
+set $term sh -c "kitty || alacritty || foot"
+set $menu pkill -x wofi || wofi --show drun --conf ~/.config/wofi/config --style ~/.config/wofi/style.css
+set $lock ~/.config/sway/scripts/lock.sh
+set $browser firefox
+set $editor nvim
+
+# ------------------------------------------------------------------------------
+# 2. MODULAR SUBSYSTEM INCLUSION
+# ------------------------------------------------------------------------------
+# Include dedicated modular configuration files in strict precedence order
+include ~/.config/sway/theme.conf
+include ~/.config/sway/output.conf
+include ~/.config/sway/input.conf
+include ~/.config/sway/appearance.conf
+include ~/.config/sway/bindings.conf
+include ~/.config/sway/windowrules.conf
+include ~/.config/sway/idle.conf
+include ~/.config/sway/notifications.conf
+include ~/.config/sway/autostart.conf
+
+# Allow override localization per machine without modifying tracked dotfiles
+include ~/.config/sway/local/*.conf

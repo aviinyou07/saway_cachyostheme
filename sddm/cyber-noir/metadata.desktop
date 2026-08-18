@@ -1,0 +1,10 @@
+[SddmGreeterTheme]
+Name=Cyber Studio
+Description=Glassmorphic Qt Quick greeter for Sway on CachyOS, with live host telemetry. Colours follow the Cyber Studio design tokens.
+Author=Cyber Studio
+Copyright=MIT
+Screenshot=background.png
+ConfigFile=theme.conf
+TranslationsDirectory=translations
+Theme-Id=cyber-noir
+Theme-API=2.0

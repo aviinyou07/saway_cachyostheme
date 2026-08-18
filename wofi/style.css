@@ -1,0 +1,139 @@
+/* =============================================================================
+ * CYBER STUDIO WORKSTATION // WOFI STYLING  (GTK3 CSS only)
+ * =============================================================================
+ * Requirements implemented:
+ *   - Rounded corners (16px outer radius, 12px inputs, 10px item rows)
+ *   - Glassmorphic Blur (Semi-transparent #111827 background)
+ *   - Accent border (#38BDF8 outer window frame)
+ *   - Accent selected item (#38BDF8), matching every other focus signal
+ *   - Large Search Bar (Generous padding, 16px font, reactive focus outline)
+ *   - Smooth appearance & transitions without visual clutter
+ * ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+ * 1. CORE DESIGN RESETS & TYPOGRAPHY
+ * ----------------------------------------------------------------------------- */
+* {
+    font-family: "JetBrains Mono Nerd Font", "JetBrains Mono", monospace;
+    font-weight: 500;
+    outline: none;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * 2. MASTER LAUNCHER WINDOW & GLASSMORPHIC COMPOSITING
+ * ----------------------------------------------------------------------------- */
+#window {
+    background-color: rgba(17, 24, 39, 0.86); /* #111827 with glassmorphic alpha */
+    border: 1px solid #38BDF8;                /* Required Cyan Border (#38BDF8) */
+    border-radius: 16px;                      /* Smooth rounded geometry */
+    color: #F8FAFC;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+}
+
+/* Remove default scrollbar bulk for minimalist developer presentation */
+#scroll {
+    margin: 0 16px 16px 16px;
+    border: none;
+    background: transparent;
+}
+
+/* -----------------------------------------------------------------------------
+ * 3. LARGE SEARCH BAR (Prompt Engine)
+ * ----------------------------------------------------------------------------- */
+#input {
+    margin: 22px 22px 14px 22px;
+    padding: 14px 20px;
+    background-color: #1E293B;               /* Card background token */
+    color: #F8FAFC;
+    border: 1px solid #334155;               /* Standard sub-border tone */
+    border-radius: 12px;
+    font-size: 16px;                         /* Generous typography scale */
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Reactive input focus: border illuminated in Cyan (#38BDF8) */
+#input:focus {
+    border-color: #38BDF8;
+    background-color: #0F172A;
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35), inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Placeholder styling. GTK spells this as a child node, not a CSS3
+ * pseudo-element -- `#input::placeholder` is dropped with a parse error. */
+#input placeholder {
+    color: #64748B;
+    font-style: italic;
+}
+
+/* -----------------------------------------------------------------------------
+ * 4. RESULTS LIST & ITEM ENTRY ARROW
+ * ----------------------------------------------------------------------------- */
+#inner-box {
+    margin: 0;
+    padding: 4px;
+    background: transparent;
+}
+
+#entry {
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-color: transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Subtle Hover Animation prior to selection */
+#entry:hover {
+    background-color: #1E293B;
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+/* -----------------------------------------------------------------------------
+ * 5. GREEN SELECTED ITEM (Mandatory Focus State)
+ * ----------------------------------------------------------------------------- */
+#entry:selected,
+#entry:focus {
+    background-color: #38BDF8;               /* accent -- same signal as window
+                                                focus and the active workspace */
+    border-color: #38BDF8;
+    color: #090C14;
+    font-weight: 700;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+    /* GTK CSS has no `transform`. The 4px inward nudge on selection is done
+     * with asymmetric padding, which GTK does animate via `transition`. */
+    padding-left: 18px;
+    padding-right: 10px;
+}
+
+/* Ensure typography and labels within the green selected item switch to #111827 */
+#entry:selected #text,
+#entry:selected label,
+#entry:focus #text,
+#entry:focus label {
+    color: #090C14;
+    font-weight: 700;
+}
+
+/* -----------------------------------------------------------------------------
+ * 6. TYPOGRAPHY & ICON LAYOUT ALIGNMENT
+ * ----------------------------------------------------------------------------- */
+/* GTK CSS has no `vertical-align`; both rules below were dropped entirely,
+ * which is why icons and labels never lined up. Even vertical padding on the
+ * row centres them, and the icon gap is expressed as margin. */
+#text, label {
+    margin-left: 14px;
+    font-size: 14px;
+    color: #F8FAFC;
+}
+
+#img, image {
+    margin-right: 10px;
+    -gtk-icon-style: regular;
+}
