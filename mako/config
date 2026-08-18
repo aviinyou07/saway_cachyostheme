@@ -29,7 +29,8 @@ output=active
 # ------------------------------------------------------------------------------
 # 2. VISUAL STYLES & CYBER NOIR DESIGN TOKENS
 # ------------------------------------------------------------------------------
-# Black background with hex alpha for Wayfire/SwayFX blur (matches Waybar obsidian)
+# Alpha-composited over the wallpaper (matches Waybar obsidian). This is plain
+# translucency, not blur -- SwayFX is not installable against current wlroots.
 background-color=#090C14EB
 text-color=#CBD5E1
 

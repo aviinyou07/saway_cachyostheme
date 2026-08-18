@@ -89,27 +89,6 @@ of rows has no use for a GPU.
 `python-gobject`/`gtk4`/`libadwaita`, and on a rolling release those can break on
 an update.
 
-### SwayFX
-
-Rounded corners, blur and drop shadows are **SwayFX** features — they are hard
-config errors on upstream Sway, which is why they can't simply be listed in
-`appearance.conf`. `sway/scripts/swayfx-effects.sh` probes the running compositor
-and applies them only when supported, so the same config works on both. On
-upstream Sway it is a silent no-op.
-
-**As of Sway 1.12, SwayFX cannot be installed on Arch/CachyOS.** Sway 1.12 is
-built against `wlroots0.20`; `swayfx` 0.6 still requires `wlroots0.19`, which has
-been dropped from the repositories, so the dependency is unsatisfiable:
-
-```
-:: unable to satisfy dependency 'wlroots0.19' required by swayfx
-```
-
-Nothing here is wasted by that — the effects script probes rather than assumes,
-so if SwayFX catches up to current wlroots it becomes a no-op-no-longer with no
-config changes. Until then this is an upstream-Sway setup, and the translucency
-in the Waybar and Mako styling is plain alpha compositing rather than real blur.
-
 ---
 
 ## Install
@@ -152,7 +131,7 @@ dotfiles/
 ├── sway/                       # compositor, split by responsibility
 │   ├── config                  #   entrypoint: variables + includes
 │   ├── theme.conf              #   tokens + window decoration
-│   ├── appearance.conf         #   gaps, borders, SwayFX hook
+│   ├── appearance.conf         #   gaps, borders
 │   ├── bindings.conf           #   keybindings
 │   ├── input.conf              #   keyboard, touchpad, pointer
 │   ├── output.conf             #   displays (wallpaper is NOT set here)
@@ -170,7 +149,6 @@ dotfiles/
 │       ├── desktop-theme.sh    #   GTK/icon/cursor resolution
 │       ├── idle-daemon.sh      #   swayidle supervisor
 │       ├── idle-suspend.sh     #   suspend on idle, battery only
-│       ├── swayfx-effects.sh   #   conditional visual effects
 │       ├── wallpaper_rotator.sh#   wallpaper daemon (sole owner of swaybg)
 │       └── wallpaper-switch.sh #   wallpaper client
 │
@@ -266,6 +244,17 @@ back exactly the bytes it wrote.
 `pam_fprintd.so` first and falls through to the password stack when the reader is
 absent, busy, unenrolled or times out, so a broken sensor can never lock you out.
 Enrol before expecting it to do anything: `fprintd-enroll && fprintd-verify`.
+
+**No rounded corners, blur or shadows — and no scaffolding pretending otherwise.**
+Those are SwayFX directives, and hard config errors on upstream Sway. SwayFX is
+not installable here either: Sway 1.12 is built against `wlroots0.20`, `swayfx`
+0.6 still needs `wlroots0.19`, and that package has been dropped from the
+repositories. A conditional effects script used to probe the compositor and
+no-op on upstream Sway; it was removed rather than kept as scaffolding for
+something that cannot be installed, because a reload that always does nothing is
+just a thing to wonder about later. The translucency in the Waybar and Mako
+styling is plain alpha compositing over the wallpaper, and reads fine without
+real blur.
 
 **The lock screen puts the wallpaper back, rather than blurring what it grabbed.**
 `grim` returns the frame the compositor already flattened, so with a translucent

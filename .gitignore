@@ -11,6 +11,11 @@ scratch/
 __pycache__/
 *.pyc
 
+# The GTK apps are plain scripts, but anything that imports or byte-compiles
+# them (a syntax check, the CI workflow) drops a __pycache__ beside them, and
+# sync_to_repo.sh would otherwise carry it straight into the repo.
+sway/scripts/__pycache__/
+
 # ------------------------------------------------------------------------------
 # Machine-local runtime state
 # ------------------------------------------------------------------------------
