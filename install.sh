@@ -220,6 +220,10 @@ CORE_PKGS=(
     # Laptop CPU/thermal profile management. Active on the author's machine but
     # never listed, so a clone silently ran without any power profile at all.
     "power-profiles-daemon"
+    # wtype: virtual-keyboard typing, used by sway/scripts/clipboard.sh to send
+    # the paste shortcut after picking an entry. Without it the picker still
+    # copies, it just cannot paste -- the script degrades rather than failing.
+    "wtype"
     # Fingerprint authentication for the lock screen and sudo. The PAM stack in
     # system/pam.d/swaylock is only deployed when pam_fprintd.so exists, so
     # without this package the lock screen quietly stays password-only.

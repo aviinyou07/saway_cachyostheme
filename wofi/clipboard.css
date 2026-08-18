@@ -1,0 +1,103 @@
+/* =============================================================================
+ * CYBER NOIR // CLIPBOARD PICKER  (GTK3 CSS only)
+ * =============================================================================
+ * Deliberately quieter than the launcher stylesheet. That one fills the whole
+ * selected row with accent cyan, which works for five short power-menu labels
+ * but is punishing across twelve rows of dense text -- the eye gets nowhere to
+ * rest and the selected row's own content becomes the hardest thing to read.
+ *
+ * Here the accent is spent on a single left-edge bar plus a lifted background.
+ * Selection stays unmistakable, the text stays legible, and colour still means
+ * one thing only: "this is the row you are on".
+ *
+ * GTK3 CSS, not web CSS: no transform, no vertical-align, no ::placeholder.
+ * ============================================================================= */
+
+* {
+    font-family: "JetBrains Mono Nerd Font", "JetBrains Mono", monospace;
+    outline: none;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* --- Window ---------------------------------------------------------------- */
+#window {
+    background-color: rgba(9, 12, 20, 0.94);   /* bg #090C14, glass */
+    border: 1px solid #1E293B;                 /* structural, not decorative */
+    border-radius: 18px;
+    color: #E2E8F0;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.9);
+}
+
+/* --- Search ---------------------------------------------------------------- */
+#input {
+    margin: 20px 20px 12px 20px;
+    padding: 13px 18px;
+    background-color: #0F172A;
+    color: #F8FAFC;
+    border: 1px solid #1E293B;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    caret-color: #38BDF8;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+#input:focus {
+    border-color: #38BDF8;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+#input placeholder {
+    color: #475569;
+}
+
+/* --- List ------------------------------------------------------------------ */
+#scroll {
+    margin: 0 12px 16px 12px;
+    background: transparent;
+}
+
+#inner-box {
+    background: transparent;
+    padding: 2px 4px;
+}
+
+/* A 3px transparent left border on every row, so the accent bar on the selected
+ * row costs no layout shift when it appears. */
+#entry {
+    padding: 9px 14px;
+    margin: 1px 0;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+    background-color: transparent;
+    transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+
+#entry:hover {
+    background-color: rgba(30, 41, 59, 0.55);
+}
+
+/* --- Selection ------------------------------------------------------------- */
+#entry:selected,
+#entry:focus {
+    background-color: #172033;
+    border-left-color: #38BDF8;
+}
+
+#entry:selected #text,
+#entry:selected label,
+#entry:focus #text,
+#entry:focus label {
+    color: #F8FAFC;
+    font-weight: 600;
+}
+
+/* --- Text ------------------------------------------------------------------ */
+#text, label {
+    margin-left: 10px;
+    font-size: 13.5px;
+    font-weight: 400;
+    color: #94A3B8;                            /* text-3: resting rows recede */
+}

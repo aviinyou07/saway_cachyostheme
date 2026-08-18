@@ -296,8 +296,9 @@
     "custom/cliphist": {
         "format": "󰅌",
         "tooltip": true,
-        "tooltip-format": "Clipboard History\nClick to open picker (Super+Shift+V)",
-        "on-click": "cliphist list | wofi --dmenu --conf ~/.config/wofi/dmenu.conf --style ~/.config/wofi/style.css -p 'Clipboard' | cliphist decode | wl-copy"
+        "tooltip-format": "Clipboard History\nLeft click: picker (Super+Shift+V)\nRight click: clear history",
+        "on-click": "~/.config/sway/scripts/clipboard.sh",
+        "on-click-right": "~/.config/sway/scripts/clipboard.sh clear"
     },
 
     "battery": {
