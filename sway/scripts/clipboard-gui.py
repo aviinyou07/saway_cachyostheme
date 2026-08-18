@@ -402,7 +402,17 @@ class App(Adw.Application):
         prov.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        Window(self, self.target_app).present()
+        # Reuse the window if one is already open. GApplication does deduplicate
+        # the PROCESS -- a second launch hands off to the primary instance and
+        # exits -- but the primary then runs do_activate again, and building a
+        # fresh Window there meant every click on the Waybar icon stacked
+        # another copy. Three clicks, three windows.
+        win = self.props.active_window
+        if win is None:
+            win = Window(self, self.target_app)
+        else:
+            win.reload()          # entries may have arrived since it was opened
+        win.present()
 
 
 if __name__ == "__main__":

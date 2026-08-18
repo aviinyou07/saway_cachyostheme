@@ -278,7 +278,7 @@
         "tooltip-format-wifi": "WiFi: {essid} ({signalStrength}%)\n{ifname} — {ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}",
         "tooltip-format-ethernet": "{ifname} — {ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}",
         "tooltip-format-disconnected": "No network",
-        "on-click": "networkmanager_dmenu"
+        "on-click": "~/.config/sway/scripts/network-gui.py"
     },
 
     "custom/vpn": {
