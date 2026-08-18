@@ -95,7 +95,20 @@ Rounded corners, blur and drop shadows are **SwayFX** features — they are hard
 config errors on upstream Sway, which is why they can't simply be listed in
 `appearance.conf`. `sway/scripts/swayfx-effects.sh` probes the running compositor
 and applies them only when supported, so the same config works on both. On
-upstream Sway it is a silent no-op; install `swayfx` to get the glass look.
+upstream Sway it is a silent no-op.
+
+**As of Sway 1.12, SwayFX cannot be installed on Arch/CachyOS.** Sway 1.12 is
+built against `wlroots0.20`; `swayfx` 0.6 still requires `wlroots0.19`, which has
+been dropped from the repositories, so the dependency is unsatisfiable:
+
+```
+:: unable to satisfy dependency 'wlroots0.19' required by swayfx
+```
+
+Nothing here is wasted by that — the effects script probes rather than assumes,
+so if SwayFX catches up to current wlroots it becomes a no-op-no-longer with no
+config changes. Until then this is an upstream-Sway setup, and the translucency
+in the Waybar and Mako styling is plain alpha compositing rather than real blur.
 
 ---
 

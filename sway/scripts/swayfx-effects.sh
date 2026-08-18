@@ -9,6 +9,11 @@
 # This probes the running compositor and applies them only if they are supported,
 # so one config works on both sway and swayfx.
 # ==============================================================================
+# NOTE (Sway 1.12 era): swayfx cannot currently be installed on Arch/CachyOS --
+# sway 1.12 is built against wlroots0.20 while swayfx 0.6 still needs wlroots0.19,
+# which has been dropped from the repos. This script stays because it probes for
+# support rather than assuming it, so it costs one no-op swaymsg per reload today
+# and starts working by itself if swayfx catches up.
 set -uo pipefail
 command -v swaymsg >/dev/null 2>&1 || exit 0
 
