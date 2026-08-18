@@ -43,61 +43,12 @@ WOFI_STYLE="$HOME/.config/wofi/clipboard.css"
 ACT_CLEAR="󰩹   Clear clipboard history"
 ACT_SHOT="󰄀   Screenshot a region to clipboard"
 ACT_DEL="󰆴   Delete a single entry"
-ACT_RESTORE="󰕌   Restore last backup"
 SEP="─────────────────────────────────────────"
 
 note() { command -v notify-send >/dev/null 2>&1 && notify-send -t 2500 "$@" || true; }
 
 # Toggle: a second press closes the picker instead of stacking another.
 if pgrep -x wofi >/dev/null 2>&1; then pkill -x wofi; exit 0; fi
-
-# ------------------------------------------------------------------------------
-# Backups
-# ------------------------------------------------------------------------------
-# `cliphist wipe` destroys the store outright and cliphist has no undo. A 260MB
-# history was lost here during development without the cause ever being pinned
-# down, which is the whole argument for this: the safety of a destructive action
-# should not rest on nobody ever triggering it by accident.
-#
-# The db is a single file, so a copy is a complete backup. Backups live beside
-# the store, are timestamped, and the newest BACKUP_KEEP are retained.
-DB="${XDG_CACHE_HOME:-$HOME/.cache}/cliphist/db"
-BACKUP_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/cliphist/backups"
-BACKUP_KEEP=5
-
-backup_db() {
-    [[ -s "$DB" ]] || return 0
-    mkdir -p "$BACKUP_DIR" || return 1
-    local dest="$BACKUP_DIR/db-$(date +%Y%m%d-%H%M%S)"
-    cp -f "$DB" "$dest" 2>/dev/null || return 1
-    # Prune oldest beyond BACKUP_KEEP. `find -printf` + sort is used rather than
-    # ls so filenames are never parsed.
-    local old
-    while read -r old; do rm -f -- "$old"; done < <(
-        find "$BACKUP_DIR" -maxdepth 1 -type f -name 'db-*' -printf '%T@ %p\n' 2>/dev/null \
-        | sort -rn | tail -n +$((BACKUP_KEEP + 1)) | cut -d' ' -f2-)
-    printf '%s' "$dest"
-}
-
-latest_backup() {
-    find "$BACKUP_DIR" -maxdepth 1 -type f -name 'db-*' -printf '%T@ %p\n' 2>/dev/null \
-    | sort -rn | head -1 | cut -d' ' -f2-
-}
-
-restore_backup() {
-    local b; b="$(latest_backup)"
-    [[ -n "$b" && -s "$b" ]] || { note "󰕌 Clipboard" "No backup to restore"; return 0; }
-    local when; when="$(basename "$b")"; when="${when#db-}"
-    local c
-    c="$(printf '%s\n%s\n' "󰜺   Cancel" "󰕌   Restore backup from ${when}" \
-         | menu_small --prompt "Restore clipboard?" --width 460 --height 250 --lines 2)"
-    [[ "$c" == *"Restore"* ]] || return 0
-    # Back up the CURRENT store first, so restoring is itself reversible.
-    backup_db >/dev/null
-    cp -f "$b" "$DB" 2>/dev/null \
-      && note "󰕌 Clipboard" "Restored $(cliphist list 2>/dev/null | wc -l) entries" \
-      || note "󰕌 Clipboard" "Restore failed"
-}
 
 confirm_wipe() {
     local n; n="$(cliphist list 2>/dev/null | wc -l)"
@@ -112,14 +63,10 @@ confirm_wipe() {
     c="$(printf '%s\n%s\n' "󰜺   Keep history" "󰩹   Delete all ${n} entries" \
          | menu_small --prompt "Clear clipboard?" --width 460 --height 250 --lines 2)"
     [[ "$c" == *"Delete all"* ]] || return 0
-    local b; b="$(backup_db)"
-    if cliphist wipe; then
-        if [[ -n "$b" ]]; then
-            note "󰩹 Clipboard" "Cleared ${n} entries — restorable from the picker"
-        else
-            note "󰩹 Clipboard" "Cleared ${n} entries (backup failed)"
-        fi
-    fi
+    # No snapshot first. Everything copied lands in this history, passwords
+    # included, so "cleared" has to mean gone -- not recoverable from a file on
+    # disk. A clear that can be undone is worse than none, because it looks safe.
+    cliphist wipe && note "󰩹 Clipboard" "Deleted ${n} entries permanently"
     return 0
 }
 
@@ -242,8 +189,8 @@ fi
 # top the reflex of "open picker, hit Enter" fired a screenshot instead of
 # pasting the most recent item -- the single most common thing this menu is for.
 CHOSEN="$(printf '%s\n%s\n%s\n%s\n%s\n%s\n' "$(build_menu)" "$SEP" \
-                 "$ACT_SHOT" "$ACT_DEL" "$ACT_RESTORE" "$ACT_CLEAR" \
-          | menu --prompt "Clipboard   ·   type  del  shot  clear  restore")"
+                 "$ACT_SHOT" "$ACT_DEL" "$ACT_CLEAR" \
+          | menu --prompt "Clipboard   ·   type  del  shot  clear")"
 [[ -n "$CHOSEN" ]] || exit 0
 
 # wofi echoes the row back verbatim, img: prefix and all, so it comes off before
@@ -255,7 +202,6 @@ case "$CHOSEN" in
     "$SEP") exit 0 ;;
     "$ACT_SHOT") exec "$HOME/.config/sway/scripts/screenshot.sh" copy ;;
     "$ACT_CLEAR") confirm_wipe; exit 0 ;;
-    "$ACT_RESTORE") restore_backup; exit 0 ;;
     "$ACT_DEL")
         # Removing one entry matters more than it sounds: everything copied ends
         # up here, passwords included, and until now the only way to get a single

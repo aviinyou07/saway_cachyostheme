@@ -14,7 +14,7 @@
 # rows that looked like clipboard history but were not.
 #
 # Everything the wofi version learned is preserved: paste on select with the
-# right shortcut per application, backup before any destructive action, bounded
+# right shortcut per application, bounded
 # and cached thumbnails, and focus sampled before this window ever maps.
 # =============================================================================
 import os
@@ -58,11 +58,9 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
 CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
 DB = CACHE / "cliphist" / "db"
-BACKUPS = CACHE / "cliphist" / "backups"
 THUMBS = CACHE / "cyber-noir-clipthumbs"
 THUMB_PX = 44
 THUMB_LIMIT = 40          # newest N image rows get a preview; see build note below
-BACKUP_KEEP = 5
 
 # Terminals bind Ctrl+Shift+V; everything else uses Ctrl+V. Sending the wrong one
 # does nothing at best and fires an unrelated binding at worst.
@@ -121,27 +119,6 @@ def cliphist_list():
         if cid.isdigit():
             rows.append((cid, preview, line))
     return rows
-
-
-def backup_db():
-    """A copy of the single db file is a complete backup. Returns its path."""
-    if not DB.exists() or DB.stat().st_size == 0:
-        return None
-    BACKUPS.mkdir(parents=True, exist_ok=True)
-    dest = BACKUPS / f"db-{datetime.now():%Y%m%d-%H%M%S}"
-    try:
-        shutil.copyfile(DB, dest)
-    except OSError:
-        return None
-    keep = sorted(BACKUPS.glob("db-*"), key=lambda p: p.stat().st_mtime, reverse=True)
-    for old in keep[BACKUP_KEEP:]:
-        old.unlink(missing_ok=True)
-    return dest
-
-
-def latest_backup():
-    b = sorted(BACKUPS.glob("db-*"), key=lambda p: p.stat().st_mtime, reverse=True)
-    return b[0] if b else None
 
 
 class Row(Gtk.ListBoxRow):
@@ -208,7 +185,6 @@ class Window(Adw.ApplicationWindow):
         # Top-right actions, in ascending order of consequence.
         header.pack_end(hbtn("user-trash-full-symbolic", "Clear all history",
                              self.on_clear, "destructive-action"))
-        header.pack_end(hbtn("edit-undo-symbolic", "Restore last backup", self.on_restore))
         header.pack_end(hbtn("camera-photo-symbolic", "Screenshot a region to clipboard",
                              self.on_shot))
 
@@ -354,41 +330,28 @@ class Window(Adw.ApplicationWindow):
         d.connect("response", lambda _d, resp: cb() if resp == "go" else None)
         d.present(self)
 
+    # Deletion here is FINAL, deliberately.
+    #
+    # An earlier version snapshotted the store before wiping and offered a
+    # restore. That is the right instinct for a document and the wrong one for a
+    # clipboard: everything you copy lands in this history, passwords included,
+    # so "I cleared it" has to mean the data is gone -- not sitting in
+    # ~/.cache/cliphist/backups where anyone reading the disk can recover it.
+    # A recoverable clear is worse than no clear at all, because it looks safe.
     def on_clear(self, *_):
         n = len(self.rows)
         if not n:
             notify("Clipboard", "History is already empty")
             return
         def go():
-            b = backup_db()
             subprocess.run(["cliphist", "wipe"], capture_output=True)
             for f in THUMBS.glob("*.png"):
                 f.unlink(missing_ok=True)
             self.reload()
-            notify("Clipboard", f"Cleared {n} entries" +
-                   (" — restorable" if b else " (backup failed)"))
-        self._confirm("Clear clipboard history?",
-                      f"All {n} entries will be removed. A backup is saved first "
-                      f"and can be restored from this window.", "Clear all", go)
-
-    def on_restore(self, *_):
-        b = latest_backup()
-        if not b:
-            notify("Clipboard", "No backup to restore")
-            return
-        when = b.name.removeprefix("db-")
-        def go():
-            backup_db()          # restoring is itself reversible
-            try:
-                shutil.copyfile(b, DB)
-            except OSError:
-                notify("Clipboard", "Restore failed"); return
-            self.reload()
-            notify("Clipboard", f"Restored {len(self.rows)} entries")
-        self._confirm("Restore clipboard backup?",
-                      f"Replaces the current history with the backup from {when}. "
-                      f"The current history is backed up first.",
-                      "Restore", go, destructive=False)
+            notify("Clipboard", f"Deleted {n} entries permanently")
+        self._confirm("Delete all clipboard history?",
+                      f"All {n} entries will be permanently deleted. This cannot "
+                      f"be undone and no copy is kept.", "Delete all", go)
 
     def on_shot(self, *_):
         self.close()

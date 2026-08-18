@@ -24,8 +24,18 @@
 # ==============================================================================
 set -uo pipefail
 
-DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
+ROOT="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
 STAMP="$(date +%Y%m%d_%H%M%S)"
+
+# Captures land in a per-month folder. A single flat directory had reached 716
+# files and 290MB here, which is not a disk problem so much as an unusable one:
+# nothing can be found in it and nothing can be pruned selectively.
+#
+# Existing screenshots are deliberately NOT moved. They are your files, and
+# silently reorganising a folder someone may have linked or scripted against is
+# not a tidy-up. `screenshot.sh tidy` does it on request; `screenshot.sh prune
+# <days>` deletes captures older than N days, also only when asked.
+DIR="${ROOT}/$(date +%Y-%m)"
 
 # slurp styled to the Cyber Studio palette: accent border, dimmed backdrop.
 SLURP_ARGS=(-c 38BDF8 -b 090C14A6 -s 38BDF81A -w 2)
@@ -35,6 +45,29 @@ note() { command -v notify-send >/dev/null 2>&1 && notify-send -t 2500 "$@" || t
 mkdir -p "$DIR" || { note "Screenshot" "Cannot write to $DIR"; exit 1; }
 
 case "${1:-full}" in
+    tidy)
+        # One-off: sort loose captures into the month they were taken.
+        moved=0
+        while IFS= read -r f; do
+            m=$(date -r "$f" +%Y-%m) || continue
+            mkdir -p "${ROOT}/${m}" || continue
+            mv -n -- "$f" "${ROOT}/${m}/" && moved=$((moved + 1))
+        done < <(find "$ROOT" -maxdepth 1 -type f -name '*.png')
+        echo "moved ${moved} screenshot(s) into month folders"
+        exit 0
+        ;;
+    prune)
+        days="${2:-}"
+        if ! [[ "$days" =~ ^[0-9]+$ ]]; then
+            echo "usage: ${0##*/} prune <days>   (deletes captures older than N days)" >&2
+            exit 2
+        fi
+        n=$(find "$ROOT" -type f -name '*.png' -mtime "+${days}" | wc -l)
+        find "$ROOT" -type f -name '*.png' -mtime "+${days}" -delete
+        find "$ROOT" -mindepth 1 -type d -empty -delete
+        echo "deleted ${n} screenshot(s) older than ${days} days"
+        exit 0
+        ;;
     full)
         FILE="$DIR/capture_${STAMP}.png"
         # One capture, tee'd: the file and the clipboard are the same pixels.
@@ -56,7 +89,7 @@ case "${1:-full}" in
         note "󰄀 Screenshot" "Region copied to clipboard"
         ;;
     *)
-        echo "usage: ${0##*/} [full|region|copy]" >&2
+        echo "usage: ${0##*/} [full|region|copy|tidy|prune <days>]" >&2
         exit 2
         ;;
 esac

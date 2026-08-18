@@ -62,8 +62,32 @@ full GTK stylesheet is out of scope here. This is a knowing approximation, and
 | **Kitty** | 0.75 background opacity, 15,000-line scrollback, 16-colour ANSI mapped onto the palette. |
 | **Neovim** | `lazy.nvim` + Catppuccin used as a highlight scaffold, palette fully overridden onto the tokens. Transparent background. |
 | **Starship** | Two-line prompt. Colours are named by role (`accent`, `ok`, `err`) so a retheme touches one block. |
-| **Swaylock / SDDM** | Lock and login styled from the same ramp. |
+| **Swaylock / SDDM** | Lock and login styled from the same ramp. The lock screen composites your *sharp* wallpaper under a blurred snapshot of the desktop — see below. |
+| **Clipboard manager** | GTK4 app (`sway/scripts/clipboard-gui.py`). Thumbnails for copied images, paste-on-select, per-row delete. |
+| **Network manager** | GTK4 app (`sway/scripts/network-gui.py`). Signal meters, Wi-Fi switch, connect/forget, hidden networks. |
 | **btop / fastfetch** | Matching theme; fastfetch uses the custom ASCII logo in `fastfetch/cachyos_cyber.txt`. |
+
+### The two GTK apps
+
+The clipboard and network pickers are real GTK4 applications rather than `wofi`
+menus, because a dmenu cannot express what they need: a header bar, per-row
+buttons, or any click target smaller than a whole row. As menus, their actions
+had to be listed *as entries*, sitting below hundreds of real rows where nothing
+could scroll to them.
+
+Both start hidden at login (`--daemon`) and are woken over D-Bus by
+`sway/scripts/open-app.sh`. A Python GTK4 process needs ~1.45 s to reach its
+first frame — interpreter, pygobject and GTK init, measured with an empty window
+— so paying that per click made them feel broken. Woken instead, the clipboard
+opens in ~26 ms and the network app in ~200 ms.
+
+They also pin `GSK_RENDERER=cairo`. On a hybrid-graphics laptop GTK's GPU
+renderer setup cost 3.2 s against 0.2 s in software, and a search box over a list
+of rows has no use for a GPU.
+
+`clipboard.sh` and `networkmanager-dmenu` remain as wofi fallbacks: the apps need
+`python-gobject`/`gtk4`/`libadwaita`, and on a rolling release those can break on
+an update.
 
 ### SwayFX
 
@@ -78,7 +102,7 @@ upstream Sway it is a silent no-op; install `swayfx` to get the glass look.
 ## Install
 
 ```bash
-git clone <your-fork-url> cyber-studio && cd cyber-studio/dotfiles
+git clone https://github.com/aviinyou07/saway_cachyostheme.git && cd saway_cachyostheme/dotfiles
 ./install.sh
 ```
 
@@ -95,6 +119,12 @@ automatically.
 
 **Requires:** CachyOS or Arch, an AUR helper (`paru`/`yay` — installed if absent).
 Two packages come from the AUR: `bibata-cursor-theme` and `catppuccin-gtk-theme-mocha`.
+
+`CORE_PKGS` in `install.sh` is the authoritative dependency list. Worth knowing
+that `imagemagick` (lock-screen blur and clipboard thumbnails), `wtype`
+(paste-on-select) and `gtk4`/`libadwaita`/`python-gobject` (the two apps) are in
+it — each was missing at some point, and because they happened to be installed on
+the author's machine the breakage only ever appeared on a *fresh* install.
 
 ---
 
@@ -118,8 +148,15 @@ dotfiles/
 │   ├── notifications.conf      #   mako lifecycle + bindings
 │   ├── autostart.conf          #   daemons, portals, theme sync
 │   └── scripts/
+│       ├── clipboard-gui.py    #   GTK4 clipboard manager
+│       ├── network-gui.py      #   GTK4 network manager
+│       ├── open-app.sh         #   wake a resident app over D-Bus
+│       ├── clipboard.sh        #   wofi fallback picker
+│       ├── lock.sh             #   lock screen (blur composite)
+│       ├── screenshot.sh       #   full / region / copy, month folders
 │       ├── desktop-theme.sh    #   GTK/icon/cursor resolution
 │       ├── idle-daemon.sh      #   swayidle supervisor
+│       ├── idle-suspend.sh     #   suspend on idle, battery only
 │       ├── swayfx-effects.sh   #   conditional visual effects
 │       ├── wallpaper_rotator.sh#   wallpaper daemon (sole owner of swaybg)
 │       └── wallpaper-switch.sh #   wallpaper client
@@ -149,13 +186,15 @@ dotfiles/
 | `$mod+f` | Fullscreen |
 | `$mod+Shift+space` | Toggle floating |
 | `$mod+r` | Resize mode |
-| `$mod+Shift+v` / `$mod+y` | Clipboard history |
+| `$mod+Shift+v` / `$mod+y` | Clipboard manager |
 | `$mod+Shift+w` | Wallpaper menu |
 | `$mod+Alt+w` | Next wallpaper |
 | `$mod+m` | Toggle Do-Not-Disturb |
 | `$mod+Ctrl+l` | Lock |
 | `$mod+Shift+p` / power button | Power menu (lock / logout / suspend / reboot / off) |
-| `Print` / `$mod+Shift+s` | Screenshot (full / region) |
+| `Print` | Screenshot — whole desktop → file + clipboard |
+| `$mod+Print` | Screenshot — region → file + clipboard |
+| `$mod+Shift+s` | Screenshot — region → clipboard only |
 
 ---
 
@@ -176,9 +215,14 @@ single `sh -c` or a supervisor script.
 nothing to `XF86PowerOff`, so the keypress fell through to systemd-logind, whose
 default is `HandlePowerKey=poweroff` — an instant, unprompted shutdown. Fixing it
 needs both halves: `system/logind.conf.d/90-cyber-noir-power.conf` tells logind to
-ignore the key, and `bindings.conf` §6b binds it to the power menu. A ~2s
-long-press is still a hardware-level poweroff, so a wedged session stays
-recoverable.
+ignore the key, and `bindings.conf` §6b binds it to the power menu. A ~5s
+long-press (systemd's threshold) is still a real poweroff, so a wedged session
+stays recoverable.
+
+Installing the drop-in is only half of it: logind reads its configuration once,
+at startup, so until it is reloaded the old in-memory `poweroff` stays live and
+the button keeps killing the machine. `install.sh` reloads it — `systemd-logind`
+is `Type=notify-reload`, so this costs no sessions.
 
 **`swaylock/config` targets upstream swaylock, not swaylock-effects.** swaylock
 reads each config line as a long CLI option and *aborts* on anything it does not
@@ -187,7 +231,10 @@ everywhere at once: the keybinding, the power menu, swayidle's idle timer and th
 lock-before-suspend hook all silently do nothing. `blur`, `clock`, `timestr` and
 `datestr` are swaylock-effects options and were removed for that reason; a bare
 `indicator` line was too, since upstream only has longer flags sharing that prefix
-and getopt rejected it as ambiguous. Check an edit without locking yourself out:
+and getopt rejected it as ambiguous.
+
+The blur comes from `scripts/lock.sh` instead, which hands stock swaylock a
+plain `-i` image. Check an edit without locking yourself out:
 
 ```sh
 WAYLAND_DISPLAY=nonexistent swaylock --config ~/.config/swaylock/config
@@ -207,10 +254,54 @@ back exactly the bytes it wrote.
 absent, busy, unenrolled or times out, so a broken sensor can never lock you out.
 Enrol before expecting it to do anything: `fprintd-enroll && fprintd-verify`.
 
+**The lock screen puts the wallpaper back, rather than blurring what it grabbed.**
+`grim` returns the frame the compositor already flattened, so with a translucent
+terminal the wallpaper is baked into the very pixels the text sits on — there is
+no layer left to separate, and "blur the text but not the wallpaper" cannot be
+done to a screenshot. `scripts/lock.sh` reads swaybg's current image, draws it
+sharp, and blends the blurred capture over it. Window shapes survive as a ghost;
+nothing readable does. The resized wallpaper and vignette are cached in
+`XDG_RUNTIME_DIR` (tmpfs, so a wallpaper swapped while logged out can never serve
+a stale frame), and a `--prewarm` at login keeps the first lock as fast as the
+rest.
+
+**Clearing the clipboard is permanent, deliberately.** An earlier version
+snapshotted the store before wiping and offered a restore. That is right for a
+document and wrong for a clipboard: everything you copy lands in this history,
+passwords included, so "I cleared it" has to mean the data is gone — not sitting
+in a backup file anyone reading the disk can recover. A clear that can be undone
+is worse than none, because it looks safe. Individual entries can be deleted the
+same way, from the row itself.
+
+**Idle suspend is gated on being unplugged.** swayidle measures *input*
+idleness, not work — a long compile involves no keystrokes — so an unconditional
+timer would suspend the machine mid-build. On battery that trade is worth making;
+on mains there is nothing to save and a real job to lose. Before this the chain
+ended at `dpms off`: the screen went black and the machine stayed fully awake,
+which is indistinguishable from sleep until the battery is flat.
+
+**Caches and backups are bounded.** cliphist stores whole images, so entries
+average ~1 MB and its 750-item default projected to ~700 MB — the store here
+reached 260 MB before it was cleared. The watchers run with `-max-items 150`.
+`install.sh` keeps the newest three backup vaults *and always the oldest*: the
+naive "keep newest N" deletes the pristine pre-theme configuration first, which
+is the one thing that can undo the very first install. Screenshots go into
+per-month folders; `screenshot.sh tidy` and `screenshot.sh prune <days>` exist
+but only run when asked.
+
 **Waybar scripts report nothing rather than something plausible.** `git_branch.sh`
 shows the focused window's branch or an empty string — it does not fall back to
 scanning your home directory, which made the bar display a branch unrelated to
 what you were looking at.
+
+Collapsing an optional module means removing its *styling*, not just its text.
+An empty `format` still leaves the widget realised, so shared pill rules
+(background, border, padding) keep painting a small blank capsule that highlights
+on hover and does nothing when clicked — which is what `mpris` did whenever a
+browser kept its MPRIS interface registered after playback stopped. The pill is
+attached to `.playing`/`.paused` instead. Bluetooth and Wi-Fi go the other way:
+when switched off they stay visible but dimmed, because that is exactly when you
+want the control.
 
 ---
 

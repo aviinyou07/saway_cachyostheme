@@ -262,6 +262,27 @@ BACKUP_DIR="${HOME}/.config/cyber_noir_backup_${TIMESTAMP}"
 log_info "Initializing safe configuration backup vault at: ${CYAN}${BACKUP_DIR}${RESET}"
 
 mkdir -p "${BACKUP_DIR}"
+
+# Vault retention. Every run created a timestamped backup and deleted nothing,
+# so they accumulated indefinitely -- six of them, 26MB, on the author's machine.
+#
+# Keeps the newest BACKUP_KEEP *and always the oldest*. The naive "keep newest N"
+# is wrong here: the oldest vault is the pristine pre-theme configuration, the
+# only one that can undo the very first install, and it is precisely the one
+# that policy deletes first. --uninstall restores the newest, so both ends are
+# worth having and everything in between is genuinely redundant.
+BACKUP_KEEP=3
+mapfile -t _vaults < <(find "${HOME}/.config" -maxdepth 1 -type d -name 'cyber_noir_backup_*' \
+                       -printf '%T@ %p\n' 2>/dev/null | sort -rn | cut -d' ' -f2-)
+if (( ${#_vaults[@]} > BACKUP_KEEP + 1 )); then
+    _oldest="${_vaults[-1]}"
+    for _i in "${!_vaults[@]}"; do
+        (( _i < BACKUP_KEEP )) && continue                  # newest N
+        [[ "${_vaults[$_i]}" == "${_oldest}" ]] && continue # pristine original
+        rm -rf -- "${_vaults[$_i]}"
+        log_info "Pruned redundant backup vault: ${_vaults[$_i]##*/}"
+    done
+fi
 TARGET_MODULES=("sway" "waybar" "mako" "wofi" "kitty" "starship" "fastfetch" "nvim" "swaylock" "btop" "networkmanager-dmenu")
 
 for mod in "${TARGET_MODULES[@]}"; do
